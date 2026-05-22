@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LessonsService } from './lessons.service';
@@ -41,8 +42,21 @@ export class LessonsController {
     description: 'Lấy danh sách bài học thành công',
     type: [Lesson],
   })
-  findAll() {
-    return this.lessonsService.findAll();
+  findAll(@Query('courseId') courseId?: string) {
+    return this.lessonsService.findAll(courseId ? Number(courseId) : undefined);
+  }
+
+  @Get('slug/:slug')
+  @ApiOperation({ summary: 'Lấy bài học theo slug' })
+  @ApiParam({ name: 'slug', example: 'cac-so-0-1-2-3-4-5' })
+  findBySlug(@Param('slug') slug: string) {
+    return this.lessonsService.findBySlug(slug);
+  }
+
+  @Get(':id/detail')
+  @ApiOperation({ summary: 'Lấy chi tiết đầy đủ bài học (10 phần)' })
+  findDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.lessonsService.findDetail(id);
   }
 
   @Get(':id')

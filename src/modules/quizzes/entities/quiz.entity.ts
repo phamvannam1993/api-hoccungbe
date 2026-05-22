@@ -18,6 +18,7 @@ export class Quiz extends BaseEntityCommon {
       'true_false',
       'drag_drop',
       'image_choice',
+      'matching',
     ],
     default: 'single_choice',
   })
@@ -26,10 +27,24 @@ export class Quiz extends BaseEntityCommon {
     | 'multiple_choice'
     | 'true_false'
     | 'drag_drop'
-    | 'image_choice';
+    | 'image_choice'
+    | 'matching';
+
+  @Column({
+    type: 'enum',
+    enum: ['easy', 'medium', 'hard'],
+    default: 'easy',
+  })
+  difficultyLevel: 'easy' | 'medium' | 'hard';
 
   @Column({ length: 255, nullable: true })
   questionImageUrl?: string;
+
+  @Column({ length: 500, nullable: true })
+  questionAudioUrl?: string;
+
+  @Column({ length: 500, nullable: true })
+  explanationAudioUrl?: string;
 
   @Column({ type: 'json', nullable: true })
   optionsJson?: Record<string, unknown>[];
@@ -39,6 +54,9 @@ export class Quiz extends BaseEntityCommon {
 
   @Column({ type: 'text', nullable: true })
   explanation?: string;
+
+  @Column({ type: 'tinyint', unsigned: true, default: 1 })
+  exerciseNumber: number;
 
   @Column({ type: 'int', unsigned: true, default: 10 })
   points: number;

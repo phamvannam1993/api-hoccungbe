@@ -20,12 +20,11 @@ export class CoursesService {
     return await this.coursesRepository.save(course);
   }
 
-  async findAll(): Promise<Course[]> {
+  async findAll(published?: boolean): Promise<Course[]> {
     return await this.coursesRepository.find({
+      where: published ? { isPublished: true } : {},
       relations: ['lessons', 'createdBy', 'subscriptions'],
-      order: {
-        createdAt: 'DESC',
-      },
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -48,6 +47,15 @@ export class CoursesService {
     Object.assign(course, dto);
 
     return await this.coursesRepository.save(course);
+  }
+
+  async findBySlug(slug: string): Promise<Course> {
+    const course = await this.coursesRepository.findOne({
+      where: { slug },
+      relations: ['lessons'],
+    });
+    if (!course) throw new NotFoundException(`Course not found: ${slug}`);
+    return course;
   }
 
   async remove(id: number): Promise<{ message: string }> {

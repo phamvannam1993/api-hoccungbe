@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CoursesService } from './courses.service';
@@ -41,8 +42,14 @@ export class CoursesController {
     description: 'Lấy danh sách khóa học thành công',
     type: [Course],
   })
-  findAll() {
-    return this.coursesService.findAll();
+  findAll(@Query('published') published?: string) {
+    return this.coursesService.findAll(published === 'true');
+  }
+
+  @Get('slug/:slug')
+  @ApiOperation({ summary: 'Lấy chi tiết khóa học theo slug' })
+  findBySlug(@Param('slug') slug: string) {
+    return this.coursesService.findBySlug(slug);
   }
 
   @Get(':id')

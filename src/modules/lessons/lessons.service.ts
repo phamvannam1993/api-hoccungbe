@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Lesson } from './entities/lesson.entity';
+import { LessonDetail } from './entities/lesson-detail.entity';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 
@@ -10,6 +11,8 @@ export class LessonsService {
   constructor(
     @InjectRepository(Lesson)
     private readonly lessonsRepository: Repository<Lesson>,
+    @InjectRepository(LessonDetail)
+    private readonly detailRepository: Repository<LessonDetail>,
   ) {}
 
   create(dto: CreateLessonDto) {
@@ -17,8 +20,12 @@ export class LessonsService {
     return this.lessonsRepository.save(entity);
   }
 
-  findAll() {
-    return this.lessonsRepository.find({ relations: ['course', 'quizzes'] });
+  findAll(courseId?: number) {
+    return this.lessonsRepository.find({
+      where: courseId ? { courseId } : undefined,
+      relations: ['course', 'quizzes'],
+      order: { sortOrder: 'ASC' },
+    });
   }
 
   async findOne(id: number) {
@@ -30,10 +37,25 @@ export class LessonsService {
     return lesson;
   }
 
+  async findBySlug(slug: string) {
+    const lesson = await this.lessonsRepository.findOne({
+      where: { slug },
+      relations: ['course'],
+    });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    return lesson;
+  }
+
   async update(id: number, dto: UpdateLessonDto) {
     const lesson = await this.findOne(id);
     Object.assign(lesson, dto);
     return this.lessonsRepository.save(lesson);
+  }
+
+  async findDetail(id: number) {
+    const lesson = await this.findOne(id);
+    const detail = await this.detailRepository.findOne({ where: { lessonId: id } });
+    return { ...lesson, detail: detail || null };
   }
 
   async remove(id: number) {

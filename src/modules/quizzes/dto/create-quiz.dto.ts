@@ -18,6 +18,13 @@ export enum QuizQuestionType {
   TRUE_FALSE = 'true_false',
   DRAG_DROP = 'drag_drop',
   IMAGE_CHOICE = 'image_choice',
+  MATCHING = 'matching',
+}
+
+export enum QuizDifficultyLevel {
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
 }
 
 export class CreateQuizDto {
@@ -47,6 +54,15 @@ export class CreateQuizDto {
   questionType?: QuizQuestionType;
 
   @ApiPropertyOptional({
+    enum: QuizDifficultyLevel,
+    example: QuizDifficultyLevel.EASY,
+    description: 'Trình độ câu hỏi: easy=Dễ, medium=Trung bình, hard=Nâng cao',
+  })
+  @IsOptional()
+  @IsEnum(QuizDifficultyLevel)
+  difficultyLevel?: QuizDifficultyLevel;
+
+  @ApiPropertyOptional({
     example: 'https://example.com/question-image.png',
     description: 'Ảnh minh họa cho câu hỏi',
   })
@@ -54,6 +70,24 @@ export class CreateQuizDto {
   @IsString()
   @MaxLength(255)
   questionImageUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://bucket.s3.amazonaws.com/audio/uuid.mp3',
+    description: 'URL audio câu hỏi (upload qua POST /quizzes/upload-audio)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  questionAudioUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://bucket.s3.amazonaws.com/audio/uuid.mp3',
+    description: 'URL audio giải thích đáp án',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  explanationAudioUrl?: string;
 
   @ApiPropertyOptional({
     example: [
@@ -86,6 +120,18 @@ export class CreateQuizDto {
   @IsOptional()
   @IsString()
   explanation?: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    minimum: 1,
+    maximum: 8,
+    description: 'Bài tập số (1-8) mà câu hỏi thuộc về',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  exerciseNumber?: number;
 
   @ApiPropertyOptional({
     example: 10,

@@ -41,6 +41,9 @@ export class Course extends BaseEntityCommon {
   @Column({ length: 255, nullable: true })
   bannerUrl?: string;
 
+  @Column({ length: 255, nullable: true })
+  videoUrl?: string;
+
   @Column({
     type: 'enum',
     enum: CourseType,

@@ -11,6 +11,8 @@ import { Course } from '../../courses/entities/course.entity';
 import { Quiz } from '../../quizzes/entities/quiz.entity';
 import { Progress } from '../../progress/entities/progress.entity';
 import { Reward } from '../../rewards/entities/reward.entity';
+import { Volume } from '../../volumes/entities/volume.entity';
+import { Topic } from '../../topics/entities/topic.entity';
 
 @Entity('lessons')
 @Unique(['courseId', 'slug'])
@@ -23,6 +25,12 @@ export class Lesson extends BaseEntityCommon {
 
   @Column({ length: 180 })
   slug: string;
+
+  @Column({ length: 100, nullable: true })
+  volume?: string;
+
+  @Column({ length: 200, nullable: true })
+  topicName?: string;
 
   @Column({ length: 255, nullable: true })
   shortDescription?: string;
@@ -58,9 +66,23 @@ export class Lesson extends BaseEntityCommon {
   @Column({ default: false })
   isPublished: boolean;
 
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  volumeId?: number;
+
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  topicId?: number;
+
   @ManyToOne(() => Course, (course) => course.lessons, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'courseId' })
   course: Course;
+
+  @ManyToOne(() => Volume, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'volumeId' })
+  volumeRelation?: Volume;
+
+  @ManyToOne(() => Topic, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'topicId' })
+  topicRelation?: Topic;
 
   @OneToMany(() => Quiz, (quiz) => quiz.lesson)
   quizzes: Quiz[];

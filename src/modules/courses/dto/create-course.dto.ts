@@ -62,6 +62,12 @@ export class CreateCourseDto {
   @IsString()
   bannerUrl?: string;
 
+  @ApiPropertyOptional({ example: 'https://www.youtube.com/watch?v=...' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  videoUrl?: string;
+
   @ApiPropertyOptional({
     enum: CourseType,
     example: CourseType.MATH,

@@ -44,6 +44,32 @@ export class CreateLessonDto {
   @MaxLength(180)
   slug: string;
 
+  @ApiPropertyOptional({ example: 1, description: 'ID tập (volumeId FK)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  volumeId?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID chủ đề (topicId FK)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  topicId?: number;
+
+  @ApiPropertyOptional({ example: 'Tập 1' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  volume?: string;
+
+  @ApiPropertyOptional({ example: 'Chủ đề 1: Các số từ 0 đến 10' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  topicName?: string;
+
   @ApiPropertyOptional({
     example: 'Bài học giúp bé làm quen với các con số cơ bản',
     description: 'Mô tả ngắn của bài học',
