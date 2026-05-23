@@ -16,6 +16,8 @@ import { FeedbackController } from './modules/feedback/feedback.controller';
 import { VolumesModule } from './modules/volumes/volumes.module';
 import { TopicsModule } from './modules/topics/topics.module';
 import { ExamsModule } from './modules/exams/exams.module';
+import { ArticlesModule } from './modules/articles/articles.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   controllers: [FeedbackController],
@@ -58,6 +60,8 @@ import { ExamsModule } from './modules/exams/exams.module';
     VolumesModule,
     TopicsModule,
     ExamsModule,
+    ArticlesModule,
+    UploadModule,
   ],
 })
 export class AppModule {}
