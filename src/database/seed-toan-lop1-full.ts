@@ -821,3 +821,41 @@ const LESSONS: { id: number; title: string; quizzes: QuizSeed[] }[] = [
       { lessonId: 133, questionText: 'Nếu a - b = 4 và b = 3, thì a + b = ?', questionType: 'single_choice', difficultyLevel: 'hard', exerciseNumber: 8, sortOrder: 10, optionsJson: [{key:'A',text:'9'},{key:'B',text:'10'},{key:'C',text:'11'}], correctAnswerJson: 'B', explanation: 'a=4+3=7, a+b=7+3=10.' },
     ],
   },
+];
+
+async function main() {
+  await ds.initialize();
+  console.log('✅ DB connected');
+
+  let totalInserted = 0;
+
+  for (const lesson of LESSONS) {
+    await ds.query('DELETE FROM quizzes WHERE lessonId = ?', [lesson.id]);
+    for (const q of lesson.quizzes) {
+      await ds.query(
+        `INSERT INTO quizzes
+          (questionText, questionType, difficultyLevel, exerciseNumber, sortOrder,
+           optionsJson, correctAnswerJson, explanation, lessonId, isActive, points, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 10, NOW(), NOW())`,
+        [
+          q.questionText,
+          q.questionType,
+          q.difficultyLevel,
+          q.exerciseNumber,
+          q.sortOrder,
+          q.optionsJson ? JSON.stringify(q.optionsJson) : null,
+          JSON.stringify(q.correctAnswerJson),
+          q.explanation ?? null,
+          q.lessonId,
+        ],
+      );
+    }
+    console.log(`✅ Lesson ${lesson.id} (${lesson.title}): ${lesson.quizzes.length} câu hỏi`);
+    totalInserted += lesson.quizzes.length;
+  }
+
+  console.log(`\n🎉 Tổng cộng: ${totalInserted} câu hỏi cho ${LESSONS.length} bài học`);
+  await ds.destroy();
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

@@ -15,6 +15,7 @@ import { PlayModule } from './modules/play/play.module';
 import { FeedbackController } from './modules/feedback/feedback.controller';
 import { VolumesModule } from './modules/volumes/volumes.module';
 import { TopicsModule } from './modules/topics/topics.module';
+import { ExamsModule } from './modules/exams/exams.module';
 
 @Module({
   controllers: [FeedbackController],
@@ -56,6 +57,7 @@ import { TopicsModule } from './modules/topics/topics.module';
     PlayModule,
     VolumesModule,
     TopicsModule,
+    ExamsModule,
   ],
 })
 export class AppModule {}
