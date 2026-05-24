@@ -19,6 +19,15 @@ export class Quiz extends BaseEntityCommon {
       'drag_drop',
       'image_choice',
       'matching',
+      'fill_blank',
+      'table_fill',
+      'number_line',
+      'sorting',
+      'cross_out',
+      'coloring',
+      'puzzle',
+      'game',
+      'counting',
     ],
     default: 'single_choice',
   })
@@ -28,7 +37,16 @@ export class Quiz extends BaseEntityCommon {
     | 'true_false'
     | 'drag_drop'
     | 'image_choice'
-    | 'matching';
+    | 'matching'
+    | 'fill_blank'
+    | 'table_fill'
+    | 'number_line'
+    | 'sorting'
+    | 'cross_out'
+    | 'coloring'
+    | 'puzzle'
+    | 'game'
+    | 'counting';
 
   @Column({
     type: 'enum',
