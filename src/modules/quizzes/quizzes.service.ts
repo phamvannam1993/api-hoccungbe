@@ -17,7 +17,7 @@ export class QuizzesService {
     return this.quizzesRepository.save(entity);
   }
 
-  async findAll(lessonId?: number, courseId?: number, search?: string, page = 1, limit = 20) {
+  async findAll(lessonId?: number, courseId?: number, search?: string, page = 1, limit = 20, questionType?: string) {
     const qb = this.quizzesRepository
       .createQueryBuilder('q')
       .leftJoinAndSelect('q.lesson', 'lesson');
@@ -25,6 +25,7 @@ export class QuizzesService {
     if (lessonId) qb.andWhere('q.lessonId = :lessonId', { lessonId });
     if (courseId) qb.andWhere('lesson.courseId = :courseId', { courseId });
     if (search) qb.andWhere('q.questionText LIKE :search', { search: `%${search}%` });
+    if (questionType) qb.andWhere('q.questionType = :questionType', { questionType });
 
     qb.orderBy('q.difficultyLevel', 'ASC').addOrderBy('q.sortOrder', 'ASC');
 
