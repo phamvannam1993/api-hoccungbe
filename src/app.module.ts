@@ -12,7 +12,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { AuthModule } from './modules/auth/auth.module';
 import { GamesModule } from './modules/games/games.module';
 import { PlayModule } from './modules/play/play.module';
-import { FeedbackController } from './modules/feedback/feedback.controller';
+import { FeedbackModule } from './modules/feedback/feedback.module';
 import { VolumesModule } from './modules/volumes/volumes.module';
 import { TopicsModule } from './modules/topics/topics.module';
 import { ExamsModule } from './modules/exams/exams.module';
@@ -21,7 +21,6 @@ import { UploadModule } from './modules/upload/upload.module';
 import { MediaModule } from './modules/media/media.module';
 
 @Module({
-  controllers: [FeedbackController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
@@ -64,6 +63,7 @@ import { MediaModule } from './modules/media/media.module';
     ArticlesModule,
     UploadModule,
     MediaModule,
+    FeedbackModule,
   ],
 })
 export class AppModule {}
