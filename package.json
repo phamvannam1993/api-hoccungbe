@@ -11,6 +11,8 @@
     "seed:details": "ts-node -r tsconfig-paths/register src/database/seed-lesson-details.ts",
     "seed:play": "ts-node -r tsconfig-paths/register src/database/seed-play.ts",
     "seed:quizzes": "ts-node -r tsconfig-paths/register src/database/seed-quizzes.ts",
+    "seed:toan-lop2": "ts-node -r tsconfig-paths/register src/database/seed-toan-lop2.ts",
+    "seed:toan-lop2:quizzes": "ts-node -r tsconfig-paths/register src/database/seed-toan-lop2-full.ts",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",

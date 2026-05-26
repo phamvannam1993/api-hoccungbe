@@ -28,6 +28,11 @@ export class ArticlesController {
     return this.articlesService.findBySlug(slug);
   }
 
+  @Post('generate')
+  generate(@Body() body: { topic: string; category?: string }) {
+    return this.articlesService.generate(body.topic, body.category || 'kien-thuc');
+  }
+
   @Post()
   create(@Body() dto: CreateArticleDto) {
     return this.articlesService.create(dto);
