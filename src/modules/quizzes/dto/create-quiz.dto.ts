@@ -19,6 +19,16 @@ export enum QuizQuestionType {
   DRAG_DROP = 'drag_drop',
   IMAGE_CHOICE = 'image_choice',
   MATCHING = 'matching',
+  FILL_BLANK = 'fill_blank',
+  SORTING = 'sorting',
+  CROSS_OUT = 'cross_out',
+  COUNTING = 'counting',
+  COLORING = 'coloring',
+  PUZZLE = 'puzzle',
+  GAME = 'game',
+  TABLE_FILL = 'table_fill',
+  NUMBER_LINE = 'number_line',
+  FIND_ERRORS = 'find_errors',
 }
 
 export enum QuizDifficultyLevel {
