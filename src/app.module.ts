@@ -19,6 +19,7 @@ import { ExamsModule } from './modules/exams/exams.module';
 import { ArticlesModule } from './modules/articles/articles.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { MediaModule } from './modules/media/media.module';
+import { MiniGamesModule } from './modules/mini-games/mini-games.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { MediaModule } from './modules/media/media.module';
     UploadModule,
     MediaModule,
     FeedbackModule,
+    MiniGamesModule,
   ],
 })
 export class AppModule {}
