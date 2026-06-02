@@ -13,6 +13,7 @@ export enum PuzzleType {
   VEHICLES = 'vehicles',
   SHAPES = 'shapes',
   COLORS = 'colors',
+  IMAGE = 'image',
 }
 
 export enum PuzzleDifficulty {
@@ -66,6 +67,15 @@ export class Puzzle extends BaseEntityCommon {
 
   @Column({ type: 'json', nullable: true })
   configJson?: Record<string, unknown>; // theme, colors, etc.
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  imageUrl?: string; // S3 URL for image-based puzzles
+
+  @Column({ type: 'int', unsigned: true, nullable: true })
+  gridRows?: number; // 3, 4, or 5 for image puzzles
+
+  @Column({ type: 'int', unsigned: true, nullable: true })
+  gridCols?: number; // 3, 4, or 5 for image puzzles
 
   @ManyToOne(() => Lesson, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'lessonId' })

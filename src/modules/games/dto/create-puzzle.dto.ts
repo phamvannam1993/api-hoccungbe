@@ -119,4 +119,33 @@ export class CreatePuzzleDto {
   @IsOptional()
   @IsObject()
   configJson?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    example: 'https://bucket.s3.amazonaws.com/puzzle-image.jpg',
+    description: 'S3 URL của ảnh puzzle (cho loại image)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  imageUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 3,
+    description: 'Số hàng trong lưới (2, 3, 4, hoặc 5)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(2)
+  gridRows?: number;
+
+  @ApiPropertyOptional({
+    example: 3,
+    description: 'Số cột trong lưới (2, 3, 4, hoặc 5)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(2)
+  gridCols?: number;
 }

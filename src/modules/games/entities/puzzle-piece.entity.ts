@@ -23,7 +23,11 @@ export class PuzzlePiece extends BaseEntityCommon {
   sortOrder: number;
 
   @Column({ type: 'json', nullable: true })
-  configJson?: Record<string, unknown>;
+  configJson?: {
+    cropBox?: { x: number; y: number; width: number; height: number };
+    edges?: { top: string; right: string; bottom: string; left: string };
+    [key: string]: unknown;
+  };
 
   @ManyToOne(() => Puzzle, (puzzle) => puzzle.pieces, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'puzzleId' })

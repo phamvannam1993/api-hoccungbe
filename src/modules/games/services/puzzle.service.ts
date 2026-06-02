@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Puzzle } from '../entities/puzzle.entity';
+import { Puzzle, PuzzleType } from '../entities/puzzle.entity';
 import { PuzzlePiece } from '../entities/puzzle-piece.entity';
 import { PuzzleProgress } from '../entities/puzzle-progress.entity';
 import { CreatePuzzleDto } from '../dto/create-puzzle.dto';
 import { CreatePuzzlePieceDto } from '../dto/create-puzzle-piece.dto';
 import { SubmitPuzzleDto } from '../dto/submit-puzzle.dto';
+import { generatePieceMetadata } from '../../../common/utils/image-slicer';
 
 @Injectable()
 export class PuzzleService {
@@ -24,6 +25,40 @@ export class PuzzleService {
   async createPuzzle(dto: CreatePuzzleDto) {
     const entity = this.puzzleRepository.create(dto);
     return this.puzzleRepository.save(entity);
+  }
+
+  async createImagePuzzle(dto: CreatePuzzleDto & {imageUrl: string, gridRows: number, gridCols: number}) {
+    // Validate grid dimensions
+    if (![2, 3, 4, 5].includes(dto.gridRows) || ![2, 3, 4, 5].includes(dto.gridCols)) {
+      throw new BadRequestException('Grid rows and cols must be 2, 3, 4, or 5');
+    }
+
+    // Create puzzle with image metadata
+    const puzzle = this.puzzleRepository.create({
+      ...dto,
+      puzzleType: PuzzleType.IMAGE,
+      pieceCount: dto.gridRows * dto.gridCols,
+    });
+
+    const savedPuzzle = await this.puzzleRepository.save(puzzle);
+
+    // Generate and create pieces
+    const pieceMetadata = generatePieceMetadata(dto.gridRows, dto.gridCols);
+
+    const pieces = pieceMetadata.map((meta) =>
+      this.pieceRepository.create({
+        puzzleId: savedPuzzle.id,
+        position: meta.position,
+        display: 'image',
+        configJson: { cropBox: meta.cropBox, edges: meta.edges },
+        sortOrder: meta.position,
+      }),
+    );
+
+    await this.pieceRepository.save(pieces);
+
+    // Reload puzzle with pieces
+    return this.findOnePuzzle(savedPuzzle.id);
   }
 
   async findAllPuzzles(lessonId?: number) {
@@ -73,8 +108,24 @@ export class PuzzleService {
         position: p.position,
         content: p.content,
         display: p.display,
+        configJson: p.configJson, // Include cropBox for image pieces
       })),
     };
+  }
+
+  async getPuzzlePieces(puzzleId: number) {
+    const pieces = await this.pieceRepository.find({
+      where: { puzzleId },
+      order: { position: 'ASC' },
+    });
+    return pieces.map((p) => ({
+      id: p.id,
+      position: p.position,
+      content: p.content,
+      display: p.display,
+      sortOrder: p.sortOrder,
+      configJson: p.configJson, // Include cropBox for image pieces
+    }));
   }
 
   // ─── Piece Management ───────────────────────────────────────────────────
@@ -166,5 +217,39 @@ export class PuzzleService {
       await this.progressRepository.remove(progress);
     }
     return { message: 'Progress reset successfully' };
+  }
+
+  async regenerateImagePuzzlePieces(puzzleId: number) {
+    const puzzle = await this.findOnePuzzle(puzzleId);
+
+    if (puzzle.puzzleType !== PuzzleType.IMAGE) {
+      throw new BadRequestException('Puzzle must be image type');
+    }
+
+    if (!puzzle.gridRows || !puzzle.gridCols) {
+      throw new BadRequestException('Grid dimensions not set');
+    }
+
+    // Delete existing pieces
+    await this.pieceRepository.delete({ puzzleId });
+
+    // Generate new pieces
+    const pieceMetadata = generatePieceMetadata(puzzle.gridRows, puzzle.gridCols);
+    const pieces = pieceMetadata.map((meta) =>
+      this.pieceRepository.create({
+        puzzleId,
+        position: meta.position,
+        display: 'image',
+        configJson: { cropBox: meta.cropBox, edges: meta.edges },
+        sortOrder: meta.position,
+      }),
+    );
+
+    await this.pieceRepository.save(pieces);
+
+    return {
+      message: `Regenerated ${pieces.length} pieces`,
+      pieceCount: pieces.length,
+    };
   }
 }

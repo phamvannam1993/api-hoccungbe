@@ -31,8 +31,14 @@ export class PuzzleController {
   @Post()
   @ApiOperation({ summary: 'Tạo puzzle mới' })
   @ApiResponse({ status: 201, description: 'Tạo puzzle thành công', type: Puzzle })
-  createPuzzle(@Body() dto: CreatePuzzleDto) {
-    return this.puzzleService.createPuzzle(dto);
+  async createPuzzle(@Body() dto: CreatePuzzleDto) {
+    // If imageUrl provided, create image-based puzzle with auto-generated pieces
+    if (dto.imageUrl && dto.gridRows && dto.gridCols) {
+      return await this.puzzleService.createImagePuzzle(
+        dto as CreatePuzzleDto & {imageUrl: string, gridRows: number, gridCols: number}
+      );
+    }
+    return await this.puzzleService.createPuzzle(dto);
   }
 
   @Get()
@@ -67,6 +73,14 @@ export class PuzzleController {
   @ApiResponse({ status: 200, description: 'Lấy dữ liệu thành công' })
   getPuzzlePlayData(@Param('id', ParseIntPipe) id: number) {
     return this.puzzleService.getPuzzlePlayData(id);
+  }
+
+  @Get(':id/pieces')
+  @ApiOperation({ summary: 'Lấy danh sách mảnh của puzzle' })
+  @ApiParam({ name: 'id', example: 1, description: 'ID puzzle' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách mảnh thành công', type: [PuzzlePiece] })
+  getPuzzlePieces(@Param('id', ParseIntPipe) id: number) {
+    return this.puzzleService.getPuzzlePieces(id);
   }
 
   @Patch(':id')
@@ -176,5 +190,12 @@ export class PuzzleController {
     @Param('puzzleId', ParseIntPipe) puzzleId: number,
   ) {
     return this.puzzleService.resetProgress(userId, puzzleId);
+  }
+
+  @Post(':id/regenerate-pieces')
+  @ApiOperation({ summary: 'Regenerate pieces for image puzzle' })
+  @ApiParam({ name: 'id', example: 1, description: 'ID puzzle' })
+  async regeneratePieces(@Param('id', ParseIntPipe) id: number) {
+    return this.puzzleService.regenerateImagePuzzlePieces(id);
   }
 }
