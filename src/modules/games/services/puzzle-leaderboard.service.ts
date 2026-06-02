@@ -46,8 +46,8 @@ export class PuzzleLeaderboardService {
       rank: offset + idx + 1,
       user: {
         id: entry.user.id,
-        name: entry.user.name || 'Anonymous',
-        avatar: entry.user.avatar,
+        name: entry.user.fullName || 'Anonymous',
+        avatar: entry.user.avatarUrl,
       },
       puzzle: {
         id: entry.puzzle.id,
@@ -176,7 +176,9 @@ export class PuzzleLeaderboardService {
         : 0;
 
     const fastestTime = Math.min(
-      ...entries.filter((e) => e.bestTime > 0).map((e) => e.bestTime),
+      ...entries
+        .filter((e) => e.bestTime && e.bestTime > 0)
+        .map((e) => e.bestTime as number),
       Infinity,
     );
 
