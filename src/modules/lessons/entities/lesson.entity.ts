@@ -35,6 +35,9 @@ export class Lesson extends BaseEntityCommon {
   @Column({ length: 255, nullable: true })
   shortDescription?: string;
 
+  @Column({ type: 'longtext', nullable: true })
+  seoDescription?: string;
+
   @Column({ type: 'text', nullable: true })
   content?: string;
 
