@@ -12,8 +12,10 @@ export class ArticlesController {
     @Query('category') category?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
-    return this.articlesService.findPublished(category, page ? Number(page) : 1, limit ? Number(limit) : 10);
+    return this.articlesService.findPublished(category, page ? Number(page) : 1, limit ? Number(limit) : 10, sortBy, sortOrder);
   }
 
   @Get('all')

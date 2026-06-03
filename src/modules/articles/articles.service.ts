@@ -82,12 +82,23 @@ export class ArticlesService {
 
   // ─── CRUD ────────────────────────────────────────────────────────────────────
 
-  async findPublished(category?: string, page = 1, limit = 10) {
+  async findPublished(category?: string, page = 1, limit = 10, sortBy?: string, sortOrder?: 'asc' | 'desc') {
     const where: Record<string, unknown> = { isPublished: true };
     if (category) where.category = category;
+
+    const order: Record<string, 'ASC' | 'DESC'> = {};
+    if (sortBy === 'createdAt') {
+      order.createdAt = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    } else if (sortBy === 'publishedAt') {
+      order.publishedAt = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    } else {
+      order.publishedAt = 'DESC';
+      order.createdAt = 'DESC';
+    }
+
     const [data, total] = await this.articleRepo.findAndCount({
       where,
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
+      order,
       skip: (page - 1) * limit,
       take: limit,
     });
