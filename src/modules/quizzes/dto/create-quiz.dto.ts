@@ -31,6 +31,7 @@ export enum QuizQuestionType {
   FIND_ERRORS = 'find_errors',
   TRACE_NUMBER = 'trace_number',
   LETTER_TRACING = 'letter_tracing',
+  TRACE_SENTENCE = 'trace_sentence',
 }
 
 export enum QuizDifficultyLevel {
