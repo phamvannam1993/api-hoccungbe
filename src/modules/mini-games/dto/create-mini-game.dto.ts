@@ -1,8 +1,19 @@
 import {
   IsString, IsOptional, IsBoolean, IsInt, IsArray, MaxLength, Min,
 } from 'class-validator';
+import { Exclude } from 'class-transformer';
 
 export class CreateMiniGameDto {
+  // System fields - excluded from validation
+  @Exclude()
+  id?: number;
+
+  @Exclude()
+  createdAt?: Date;
+
+  @Exclude()
+  updatedAt?: Date;
+
   @IsString()
   @MaxLength(100)
   slug: string;

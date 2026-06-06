@@ -29,6 +29,8 @@ export enum QuizQuestionType {
   TABLE_FILL = 'table_fill',
   NUMBER_LINE = 'number_line',
   FIND_ERRORS = 'find_errors',
+  TRACE_NUMBER = 'trace_number',
+  LETTER_TRACING = 'letter_tracing',
 }
 
 export enum QuizDifficultyLevel {

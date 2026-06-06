@@ -29,6 +29,8 @@ export class Quiz extends BaseEntityCommon {
       'game',
       'counting',
       'find_errors',
+      'trace_number',
+      'letter_tracing',
     ],
     default: 'single_choice',
   })
@@ -48,7 +50,9 @@ export class Quiz extends BaseEntityCommon {
     | 'puzzle'
     | 'game'
     | 'counting'
-    | 'find_errors';
+    | 'find_errors'
+    | 'trace_number'
+    | 'letter_tracing';
 
   @Column({
     type: 'enum',

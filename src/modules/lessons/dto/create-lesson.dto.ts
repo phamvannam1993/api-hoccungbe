@@ -80,6 +80,14 @@ export class CreateLessonDto {
   shortDescription?: string;
 
   @ApiPropertyOptional({
+    example: 'Mô tả SEO cho tìm kiếm',
+    description: 'Mô tả SEO dành cho công cụ tìm kiếm',
+  })
+  @IsOptional()
+  @IsString()
+  seoDescription?: string;
+
+  @ApiPropertyOptional({
     example: 'Nội dung chi tiết của bài học',
     description: 'Nội dung đầy đủ của bài học',
   })

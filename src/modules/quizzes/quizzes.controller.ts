@@ -44,6 +44,35 @@ export class QuizzesController {
     return this.quizzesService.create(dto);
   }
 
+  @Post('import')
+  @ApiOperation({ summary: 'Import câu hỏi từ danh sách (Google Sheets/CSV)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        lessonId: { type: 'number', example: 1 },
+        questions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              questionText: { type: 'string' },
+              questionType: { type: 'string', example: 'single_choice' },
+              difficultyLevel: { type: 'string', enum: ['easy', 'medium', 'hard'] },
+              optionsJson: { type: 'array' },
+              correctAnswerJson: {},
+              explanation: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Import câu hỏi thành công' })
+  import(@Body() body: { lessonId: number; questions: any[] }) {
+    return this.quizzesService.importQuestions(body.lessonId, body.questions);
+  }
+
   @Post('upload-audio')
   @ApiOperation({
     summary: 'Upload audio lên S3 (câu hỏi, câu trả lời, giải thích)',

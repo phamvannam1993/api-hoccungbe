@@ -125,4 +125,62 @@ export class QuizzesService {
     await this.quizzesRepository.remove(quiz);
     return { message: 'Quiz deleted successfully' };
   }
+
+  async importQuestions(lessonId: number, questions: any[]) {
+    if (!lessonId || !questions || questions.length === 0) {
+      throw new Error('lessonId and questions array are required');
+    }
+
+    const created: Quiz[] = [];
+    let sortOrder = 1;
+
+    try {
+      for (let idx = 0; idx < questions.length; idx++) {
+        const q = questions[idx];
+        try {
+          // Ensure proper type conversion and validation
+          const questionData = {
+            lessonId: Number(lessonId),
+            questionText: String(q.questionText || '').trim(),
+            questionType: String(q.questionType || 'single_choice').toLowerCase(),
+            difficultyLevel: String(q.difficultyLevel || 'easy').toLowerCase(),
+            optionsJson: Array.isArray(q.optionsJson) ? q.optionsJson : [],
+            correctAnswerJson: typeof q.correctAnswerJson === 'string'
+              ? q.correctAnswerJson
+              : JSON.stringify(q.correctAnswerJson || ''),
+            explanation: String(q.explanation || '').trim(),
+            sortOrder: Number(sortOrder++),
+            exerciseNumber: Number(q.exerciseNumber || 1),
+            points: Number(q.points || 10),
+            isActive: true,
+            questionImageUrl: q.questionImageUrl ? String(q.questionImageUrl) : undefined,
+            questionAudioUrl: q.questionAudioUrl ? String(q.questionAudioUrl) : undefined,
+            explanationAudioUrl: q.explanationAudioUrl ? String(q.explanationAudioUrl) : undefined,
+          };
+
+          console.log(`[importQuestions] Creating question ${idx + 1}:`, {
+            questionText: questionData.questionText.substring(0, 50),
+            questionType: questionData.questionType,
+            difficultyLevel: questionData.difficultyLevel,
+          });
+
+          const entity = this.quizzesRepository.create(questionData);
+          const saved = await this.quizzesRepository.save(entity);
+          created.push(saved);
+        } catch (itemError) {
+          console.error(`[importQuestions] Error importing question ${idx + 1}:`, itemError);
+          throw new Error(`Failed to import question ${idx + 1}: ${itemError instanceof Error ? itemError.message : String(itemError)}`);
+        }
+      }
+
+      return {
+        message: `Imported ${created.length} questions successfully`,
+        total: created.length,
+        data: created,
+      };
+    } catch (error) {
+      console.error('[importQuestions] Error:', error);
+      throw error;
+    }
+  }
 }
