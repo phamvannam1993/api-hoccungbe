@@ -164,9 +164,9 @@ export class QuizzesService {
             difficultyLevel: questionData.difficultyLevel,
           });
 
-          const entity = this.quizzesRepository.create(questionData);
-          const saved = await this.quizzesRepository.save(entity);
-          created.push(saved);
+          const entity = this.quizzesRepository.create(questionData as any);
+          const saved = await this.quizzesRepository.save(entity as any);
+          created.push(saved as any);
         } catch (itemError) {
           console.error(`[importQuestions] Error importing question ${idx + 1}:`, itemError);
           throw new Error(`Failed to import question ${idx + 1}: ${itemError instanceof Error ? itemError.message : String(itemError)}`);
