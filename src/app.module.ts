@@ -20,6 +20,8 @@ import { ArticlesModule } from './modules/articles/articles.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { MediaModule } from './modules/media/media.module';
 import { MiniGamesModule } from './modules/mini-games/mini-games.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 
 @Module({
   imports: [
@@ -66,6 +68,8 @@ import { MiniGamesModule } from './modules/mini-games/mini-games.module';
     MediaModule,
     FeedbackModule,
     MiniGamesModule,
+    CategoriesModule,
+    DocumentsModule,
   ],
 })
 export class AppModule {}

@@ -4,14 +4,14 @@ import {
 import { Exclude } from 'class-transformer';
 
 export class CreateMiniGameDto {
-  // System fields - excluded from validation
-  @Exclude()
+  // System fields - excluded from validation & transformation
+  @Exclude({ toPlainOnly: true, toClassOnly: true })
   id?: number;
 
-  @Exclude()
+  @Exclude({ toPlainOnly: true, toClassOnly: true })
   createdAt?: Date;
 
-  @Exclude()
+  @Exclude({ toPlainOnly: true, toClassOnly: true })
   updatedAt?: Date;
 
   @IsString()

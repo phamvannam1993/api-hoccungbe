@@ -18,4 +18,24 @@ export class UploadController {
     );
     return { url };
   }
+
+  @Post('pdf')
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 50 * 1024 * 1024 },
+    fileFilter: (req, file, callback) => {
+      if (file.mimetype !== 'application/pdf') {
+        callback(new BadRequestException('Only PDF files are allowed'), false);
+        return;
+      }
+      callback(null, true);
+    },
+  }))
+  async uploadPdf(@UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string; size: number }) {
+    if (!file) throw new BadRequestException('No file provided');
+    const url = await this.s3.uploadImage(
+      { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype },
+      'documents/pdfs',
+    );
+    return { url, fileName: file.originalname };
+  }
 }
