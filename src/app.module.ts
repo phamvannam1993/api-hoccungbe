@@ -22,6 +22,7 @@ import { MediaModule } from './modules/media/media.module';
 import { MiniGamesModule } from './modules/mini-games/mini-games.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { TtsModule } from './modules/tts/tts.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
     MiniGamesModule,
     CategoriesModule,
     DocumentsModule,
+    TtsModule,
   ],
 })
 export class AppModule {}
