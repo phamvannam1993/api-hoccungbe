@@ -1,0 +1,208 @@
+import mysql from 'mysql2/promise';
+
+const dbConfig = {
+  host: 'songtute.c8spusdhenpr.ap-southeast-1.rds.amazonaws.com',
+  user: 'admin',
+  password: 'jFUnRCumnerGsGaPT5pR',
+  database: 'songtute',
+};
+
+const lessonIds = [131, 135];
+
+const data: Record<number, { topic: string; questions: any[] }> = {
+  131: {
+    topic: 'Luyện tập hình học (Ôn tập hình 2D và lắp ghép)',
+    questions: [
+      {ex:1,type:'single_choice',text:'Hình nào có nhiều cạnh nhất: tam giác, hình vuông, hình tròn?',opts:[{key:'A',text:'Tam giác'},{key:'B',text:'Hình vuông'},{key:'C',text:'Hình tròn'}],ans:'B',diff:'easy',exp:'Hình vuông có 4 cạnh, nhiều nhất',pts:10,sort:1},
+      {ex:1,type:'single_choice',text:'Hình nào KHÔNG có góc?',opts:[{key:'A',text:'Hình vuông'},{key:'B',text:'Tam giác'},{key:'C',text:'Hình tròn'}],ans:'C',diff:'easy',exp:'Hình tròn không có góc',pts:10,sort:2},
+      {ex:1,type:'single_choice',text:'Cần mấy hình vuông nhỏ để ghép hình 2×2?',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'5'}],ans:'B',diff:'easy',exp:'2 × 2 = 4 hình vuông',pts:10,sort:3},
+      {ex:1,type:'single_choice',text:'Ghép 2 tam giác bằng nhau tạo thành?',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Hình chữ nhật'},{key:'C',text:'Ngũ giác'}],ans:'B',diff:'easy',exp:'2 tam giác bằng nhau ghép lại = hình chữ nhật hoặc hình vuông',pts:10,sort:4},
+      {ex:1,type:'true_false',text:'Tam giác có 3 cạnh và 3 góc. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! Tam giác có 3 cạnh và 3 góc',pts:10,sort:5},
+      {ex:1,type:'true_false',text:'Hình chữ nhật có 4 cạnh bằng nhau. Đúng hay sai?',opts:null,ans:false,diff:'easy',exp:'Sai! Chỉ hình vuông có 4 cạnh bằng nhau',pts:10,sort:6},
+      {ex:1,type:'true_false',text:'4 hình vuông nhỏ có thể ghép thành 1 hình vuông lớn. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 2×2 = hình vuông lớn',pts:10,sort:7},
+      {ex:1,type:'fill_blank',text:'Hình vuông có [b1] cạnh bằng nhau và [b2] góc vuông',opts:[{key:'b1',text:'?'},{key:'b2',text:'?'}],ans:{b1:'4',b2:'4'},diff:'easy',exp:'Hình vuông: 4 cạnh bằng nhau, 4 góc vuông',pts:10,sort:8},
+      {ex:1,type:'fill_blank',text:'Cần [b1] hình vuông 1×1 để lát hình 3×2',opts:[{key:'b1',text:'?'}],ans:{b1:'6'},diff:'easy',exp:'3 × 2 = 6',pts:10,sort:9},
+      {ex:1,type:'fill_blank',text:'Hình [b1] là hình duy nhất không có góc trong 4 hình cơ bản',opts:[{key:'b1',text:'?'}],ans:{b1:'tròn'},diff:'easy',exp:'Hình tròn không có góc',pts:10,sort:10},
+      {ex:2,type:'counting',text:'Đếm tổng số hình: △△△ và □□□□',opts:[{key:'d1',text:'△'},{key:'d2',text:'△'},{key:'d3',text:'△'},{key:'d4',text:'□'},{key:'d5',text:'□'},{key:'d6',text:'□'},{key:'d7',text:'□'}],ans:'7',diff:'easy',exp:'3 + 4 = 7 hình',pts:10,sort:11},
+      {ex:2,type:'counting',text:'Đếm số tam giác: △△△△△△△',opts:[{key:'d1',text:'△'},{key:'d2',text:'△'},{key:'d3',text:'△'},{key:'d4',text:'△'},{key:'d5',text:'△'},{key:'d6',text:'△'},{key:'d7',text:'△'}],ans:'7',diff:'easy',exp:'7 tam giác',pts:10,sort:12},
+      {ex:2,type:'counting',text:'Hình bậc thang 3 tầng có mấy hình vuông (3+2+1)?',opts:[{key:'d1',text:'□'},{key:'d2',text:'□'},{key:'d3',text:'□'},{key:'d4',text:'□'},{key:'d5',text:'□'},{key:'d6',text:'□'}],ans:'6',diff:'easy',exp:'3 + 2 + 1 = 6 hình vuông',pts:10,sort:13},
+      {ex:2,type:'sorting',text:'Sắp xếp từ ít góc đến nhiều: hình tròn, tam giác, hình chữ nhật',opts:[{key:'1',text:'Hình tròn (0)'},{key:'2',text:'Tam giác (3)'},{key:'3',text:'Hình chữ nhật (4)'}],ans:['1','2','3'],diff:'easy',exp:'0, 3, 4 góc tăng dần',pts:10,sort:14},
+      {ex:2,type:'sorting',text:'Sắp xếp số hình vuông cần ghép tăng dần: 2×2, 1×3, 1×4, 2×3',opts:[{key:'1',text:'1×3=3'},{key:'2',text:'2×2=4'},{key:'3',text:'1×4=4'},{key:'4',text:'2×3=6'}],ans:['1','2','3','4'],diff:'easy',exp:'3, 4, 4, 6 tăng dần',pts:10,sort:15},
+      {ex:2,type:'sorting',text:'Sắp xếp từ ít cạnh đến nhiều cạnh: hình chữ nhật, tam giác, hình tròn',opts:[{key:'1',text:'Hình tròn (0)'},{key:'2',text:'Tam giác (3)'},{key:'3',text:'Hình chữ nhật (4)'}],ans:['1','2','3'],diff:'easy',exp:'0, 3, 4 tăng dần',pts:10,sort:16},
+      {ex:2,type:'cross_out',text:'Gạch bỏ hình không có cạnh thẳng: hình tròn, tam giác, hình vuông',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Tam giác'},{key:'C',text:'Hình vuông'}],ans:['A'],diff:'easy',exp:'Hình tròn không có cạnh thẳng',pts:10,sort:17},
+      {ex:2,type:'cross_out',text:'Gạch bỏ hình KHÔNG có 4 góc: hình vuông, tam giác, hình chữ nhật',opts:[{key:'A',text:'Hình vuông'},{key:'B',text:'Tam giác'},{key:'C',text:'Hình chữ nhật'}],ans:['B'],diff:'easy',exp:'Tam giác chỉ có 3 góc',pts:10,sort:18},
+      {ex:2,type:'fill_blank',text:'Tổng số góc của 2 tam giác và 1 hình tròn là [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'6'},diff:'easy',exp:'2×3 + 0 = 6 góc',pts:10,sort:19},
+      {ex:2,type:'fill_blank',text:'Ghép [b1] hình vuông nhỏ thành hình chữ nhật 1×5',opts:[{key:'b1',text:'?'}],ans:{b1:'5'},diff:'easy',exp:'1 × 5 = 5 hình vuông',pts:10,sort:20},
+      {ex:3,type:'single_choice',text:'Vật nào có hình tam giác?',opts:[{key:'A',text:'Đồng xu'},{key:'B',text:'Nón lá'},{key:'C',text:'Quyển sách'}],ans:'B',diff:'easy',exp:'Nón lá có hình tam giác',pts:10,sort:21},
+      {ex:3,type:'single_choice',text:'Mặt trên cái bàn thường có hình gì?',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Tam giác'},{key:'C',text:'Hình chữ nhật'}],ans:'C',diff:'easy',exp:'Mặt bàn thường hình chữ nhật',pts:10,sort:22},
+      {ex:3,type:'single_choice',text:'Bánh pizza tròn khi cắt đều thành 6 phần tạo ra hình gì mỗi phần?',opts:[{key:'A',text:'Hình tròn nhỏ'},{key:'B',text:'Tam giác'},{key:'C',text:'Hình vuông'}],ans:'B',diff:'easy',exp:'Mỗi phần pizza cắt đều thành tam giác',pts:10,sort:23},
+      {ex:3,type:'single_choice',text:'Hình nào có thể lăn trên mặt phẳng?',opts:[{key:'A',text:'Hình vuông'},{key:'B',text:'Tam giác'},{key:'C',text:'Hình tròn'}],ans:'C',diff:'easy',exp:'Chỉ hình tròn mới lăn được',pts:10,sort:24},
+      {ex:3,type:'true_false',text:'Đồng hồ tròn, vở ô vuông, biển cảnh báo tam giác - đều là hình học. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! Tất cả đều là các hình học trong thực tế',pts:10,sort:25},
+      {ex:3,type:'true_false',text:'Hình chữ nhật có thể là hình vuông. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! Hình vuông là hình chữ nhật đặc biệt với 4 cạnh bằng nhau',pts:10,sort:26},
+      {ex:3,type:'true_false',text:'Không thể vẽ hình tròn từ thước thẳng. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! Thước thẳng chỉ vẽ đường thẳng',pts:10,sort:27},
+      {ex:3,type:'fill_blank',text:'Hình có 4 cạnh bằng nhau là hình [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'vuông'},diff:'easy',exp:'Hình vuông có 4 cạnh bằng nhau',pts:10,sort:28},
+      {ex:3,type:'fill_blank',text:'Hình có ít cạnh nhất (có cạnh thẳng) là hình [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'tam giác'},diff:'easy',exp:'Tam giác có 3 cạnh - ít nhất trong các hình có cạnh thẳng',pts:10,sort:29},
+      {ex:3,type:'counting',text:'Đếm số hình tròn trong bức tranh: ○○○○○○',opts:[{key:'d1',text:'○'},{key:'d2',text:'○'},{key:'d3',text:'○'},{key:'d4',text:'○'},{key:'d5',text:'○'},{key:'d6',text:'○'}],ans:'6',diff:'easy',exp:'6 hình tròn',pts:10,sort:30},
+      {ex:4,type:'single_choice',text:'Trong hình 3×3, có bao nhiêu hình chữ nhật 1×2?',opts:[{key:'A',text:'4'},{key:'B',text:'6'},{key:'C',text:'12'}],ans:'B',diff:'medium',exp:'Có 6 hình 1×2 (3 ngang × 2 + 3 dọc × 2)',pts:10,sort:31},
+      {ex:4,type:'single_choice',text:'Hình nào có diện tích lớn nhất nếu cùng chu vi 12cm?',opts:[{key:'A',text:'Hình vuông 3×3'},{key:'B',text:'Hình chữ nhật 2×4'},{key:'C',text:'Hình chữ nhật 1×5'}],ans:'A',diff:'medium',exp:'Hình vuông 3×3=9cm², chữ nhật 2×4=8cm², 1×5=5cm²',pts:10,sort:32},
+      {ex:4,type:'single_choice',text:'Tổng cạnh của hình lục giác đều cạnh 3cm là?',opts:[{key:'A',text:'12cm'},{key:'B',text:'18cm'},{key:'C',text:'24cm'}],ans:'B',diff:'medium',exp:'6 × 3cm = 18cm',pts:10,sort:33},
+      {ex:4,type:'multiple_choice',text:'Chọn tất cả hình có 4 góc vuông',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Hình vuông'},{key:'C',text:'Hình chữ nhật'},{key:'D',text:'Tam giác'}],ans:['B','C'],diff:'medium',exp:'Hình vuông và chữ nhật đều có 4 góc vuông',pts:10,sort:34},
+      {ex:4,type:'multiple_choice',text:'Chọn hình có thể ghép từ 2 tam giác vuông',opts:[{key:'A',text:'Hình chữ nhật'},{key:'B',text:'Hình tròn'},{key:'C',text:'Hình vuông'},{key:'D',text:'Tam giác lớn hơn'}],ans:['A','C','D'],diff:'medium',exp:'2 tam giác vuông có thể tạo chữ nhật, vuông, hoặc tam giác lớn',pts:10,sort:35},
+      {ex:4,type:'multiple_choice',text:'Hình nào có thể gấp đôi diện tích bằng cách thêm 1 bản sao vào cạnh?',opts:[{key:'A',text:'Hình vuông'},{key:'B',text:'Hình tròn'},{key:'C',text:'Hình chữ nhật'},{key:'D',text:'Tam giác'}],ans:['A','C','D'],diff:'medium',exp:'Vuông, chữ nhật, tam giác đều ghép được nhưng tròn thì không kín',pts:10,sort:36},
+      {ex:4,type:'matching',text:'Nối hình với mô tả',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Hình vuông'},{key:'C',text:'Tam giác'}],ans:{A:'0 góc',B:'4 góc vuông',C:'3 góc'},diff:'medium',exp:'Tròn=0, vuông=4, tam giác=3',pts:10,sort:37},
+      {ex:4,type:'matching',text:'Nối vật thực với hình học',opts:[{key:'A',text:'Ổ bánh mì'},{key:'B',text:'Giấy A4'},{key:'C',text:'Biển stop'}],ans:{A:'Hình tròn',B:'Hình chữ nhật',C:'Hình bát giác'},diff:'medium',exp:'Bánh mì tròn, A4 chữ nhật, stop bát giác',pts:10,sort:38},
+      {ex:4,type:'drag_drop',text:'Kéo hình vào nhóm: "Có góc" và "Không có góc"',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Tam giác'},{key:'C',text:'Hình vuông'}],ans:['B','C'],diff:'medium',exp:'Tam giác và hình vuông có góc',pts:10,sort:39},
+      {ex:4,type:'drag_drop',text:'Kéo số: cần bao nhiêu hình vuông 1×1 để tạo hình chữ nhật 3×3?',opts:[{key:'A',text:'6'},{key:'B',text:'9'},{key:'C',text:'12'}],ans:['B'],diff:'medium',exp:'3 × 3 = 9',pts:10,sort:40},
+      {ex:5,type:'table_fill',text:'Điền số cạnh và góc',opts:[{key:'headers',text:'Hình|Cạnh|Góc'},{key:'r1',text:'Hình tròn|_r1c1|_r1c2'},{key:'r2',text:'Tam giác|_r2c1|_r2c2'},{key:'r3',text:'Hình vuông|_r3c1|_r3c2'},{key:'r4',text:'Hình chữ nhật|_r4c1|_r4c2'}],ans:{r1c1:'0',r1c2:'0',r2c1:'3',r2c2:'3',r3c1:'4',r3c2:'4',r4c1:'4',r4c2:'4'},diff:'medium',exp:'Tròn:0, tam giác:3, vuông:4, chữ nhật:4',pts:10,sort:41},
+      {ex:5,type:'table_fill',text:'Điền số mảnh ghép',opts:[{key:'headers',text:'Hình tạo ra|Hình vuông cần|Tam giác cần'},{key:'r1',text:'Hình 2×2|_r1c1|_r1c2'},{key:'r2',text:'Hình 2×3|_r2c1|_r2c2'}],ans:{r1c1:'4',r1c2:'8',r2c1:'6',r2c2:'12'},diff:'medium',exp:'2×2=4 vuông=8 tam giác; 2×3=6 vuông=12 tam giác',pts:10,sort:42},
+      {ex:5,type:'number_line',text:'Số cạnh của ngũ giác trên tia số (tam giác=3, hình vuông=4, ngũ giác=?)',opts:[{key:'min',text:'0'},{key:'max',text:'6'},{key:'step',text:'1'},{key:'marks',text:'0|1|2|3|4|5|6'},{key:'hidden',text:'5'}],ans:['5'],diff:'medium',exp:'Ngũ giác có 5 cạnh',pts:10,sort:43},
+      {ex:5,type:'number_line',text:'Tổng góc của 3 hình vuông trên tia số',opts:[{key:'min',text:'0'},{key:'max',text:'15'},{key:'step',text:'1'},{key:'marks',text:'0|3|6|9|12|15'},{key:'hidden',text:'12'}],ans:['12'],diff:'medium',exp:'3 hình vuông × 4 góc = 12 góc',pts:10,sort:44},
+      {ex:5,type:'puzzle',text:'Cần mấy hình vuông để ghép hình chữ nhật 4×5?',opts:[{key:'slot_1',text:'Cần [?] hình'},{key:'token_1',text:'16'},{key:'token_2',text:'20'},{key:'token_3',text:'25'}],ans:{slot_1:'token_2'},diff:'medium',exp:'4 × 5 = 20',pts:10,sort:45},
+      {ex:5,type:'puzzle',text:'Cắt 1 hình vuông thành 2 tam giác bằng. Tổng góc của 2 tam giác là?',opts:[{key:'slot_1',text:'Tổng góc = [?]'},{key:'token_1',text:'4'},{key:'token_2',text:'6'},{key:'token_3',text:'8'}],ans:{slot_1:'token_2'},diff:'medium',exp:'2 × 3 = 6 góc',pts:10,sort:46},
+      {ex:5,type:'puzzle',text:'Hình nào có thể tạo từ 3 hình vuông xếp thành hình L?',opts:[{key:'slot_1',text:'Hình [?]'},{key:'token_1',text:'Hình L'},{key:'token_2',text:'Hình T'},{key:'token_3',text:'Hình I'}],ans:{slot_1:'token_1'},diff:'medium',exp:'Hình L được tạo từ 3 hình vuông',pts:10,sort:47},
+      {ex:5,type:'matching',text:'Nối hình với số hình vuông nhỏ cần',opts:[{key:'A',text:'Hình 2×2'},{key:'B',text:'Hình 2×3'},{key:'C',text:'Hình 3×3'}],ans:{A:'4',B:'6',C:'9'},diff:'medium',exp:'2×2=4, 2×3=6, 3×3=9',pts:10,sort:48},
+      {ex:5,type:'matching',text:'Nối hình tạo ra với các mảnh ghép',opts:[{key:'A',text:'2 tam giác vuông'},{key:'B',text:'4 hình vuông nhỏ'},{key:'C',text:'3 hình vuông xếp hàng'}],ans:{A:'1 hình vuông',B:'1 hình vuông lớn hơn',C:'1 hình chữ nhật'},diff:'medium',exp:'2 tam giác=vuông, 4 vuông=vuông 2×2, 3 vuông=chữ nhật',pts:10,sort:49},
+      {ex:5,type:'drag_drop',text:'Kéo số cạnh vào đúng hình: tam giác _, hình vuông _, hình tròn _',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'0'}],ans:['A','B','C'],diff:'medium',exp:'Tam giác=3, vuông=4, tròn=0',pts:10,sort:50},
+      {ex:6,type:'fill_blank',text:'Tổng số cạnh của 2 tam giác + 1 hình vuông + 1 hình tròn = [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'10'},diff:'hard',exp:'2×3 + 4 + 0 = 10 cạnh',pts:10,sort:51},
+      {ex:6,type:'fill_blank',text:'Hình 4×4 chia thành hình 2×2 được [b1] hình',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'hard',exp:'(4÷2) × (4÷2) = 2 × 2 = 4 hình',pts:10,sort:52},
+      {ex:6,type:'fill_blank',text:'Số hình chữ nhật 1×2 trong bảng 2×3 là [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'7'},diff:'hard',exp:'2 ngang × 2 + 3 dọc × 1 = 4+3=7',pts:10,sort:53},
+      {ex:6,type:'puzzle',text:'Trong 10 hình vuông nhỏ, tạo hình chữ nhật có chiều dài gấp đôi chiều rộng. Chiều rộng là?',opts:[{key:'slot_1',text:'Chiều rộng = [?]'},{key:'token_1',text:'2'},{key:'token_2',text:'3'},{key:'token_3',text:'5'}],ans:{slot_1:'token_1'},diff:'hard',exp:'w × (2w) = 10, 2w²=10, w²=5... hoặc 2×5=10, chiều rộng=2',pts:10,sort:54},
+      {ex:6,type:'puzzle',text:'Ghép 5 tam giác cùng loại để tạo hình ngũ giác đều. Tổng góc của 5 tam giác là?',opts:[{key:'slot_1',text:'Tổng góc = [?]'},{key:'token_1',text:'9'},{key:'token_2',text:'12'},{key:'token_3',text:'15'}],ans:{slot_1:'token_3'},diff:'hard',exp:'5 × 3 = 15 góc',pts:10,sort:55},
+      {ex:6,type:'puzzle',text:'Bao nhiêu hình vuông 2×2 để lát kín hình 6×6?',opts:[{key:'slot_1',text:'Cần [?] hình'},{key:'token_1',text:'6'},{key:'token_2',text:'9'},{key:'token_3',text:'12'}],ans:{slot_1:'token_2'},diff:'hard',exp:'(6÷2) × (6÷2) = 3 × 3 = 9',pts:10,sort:56},
+      {ex:6,type:'multiple_choice',text:'Chọn tất cả hình có trục đối xứng',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Tam giác đều'},{key:'C',text:'Hình vuông'},{key:'D',text:'Tam giác lệch bất kỳ'}],ans:['A','B','C'],diff:'hard',exp:'Tròn (vô số), tam giác đều (3), vuông (4) đều có trục đối xứng',pts:10,sort:57},
+      {ex:6,type:'multiple_choice',text:'Hình nào có thể được tạo từ đúng 3 hình tam giác bằng nhau?',opts:[{key:'A',text:'Tam giác lớn hơn'},{key:'B',text:'Hình thoi'},{key:'C',text:'Hình bình hành'},{key:'D',text:'Hình tròn'}],ans:['A','B','C'],diff:'hard',exp:'3 tam giác có thể tạo nhiều hình tùy cách ghép',pts:10,sort:58},
+      {ex:6,type:'sorting',text:'Sắp xếp số hình cần dùng tăng dần',opts:[{key:'1',text:'2 hình tạo 1 chữ nhật'},{key:'2',text:'4 hình tạo 2×2'},{key:'3',text:'6 hình tạo 2×3'},{key:'4',text:'9 hình tạo 3×3'}],ans:['1','2','3','4'],diff:'hard',exp:'2, 4, 6, 9 tăng dần',pts:10,sort:59},
+      {ex:6,type:'sorting',text:'Sắp xếp tổng số góc giảm dần: 3 tam giác, 2 hình vuông, 4 hình chữ nhật, 0 hình tròn',opts:[{key:'1',text:'4 chữ nhật: 16 góc'},{key:'2',text:'2 vuông: 8 góc'},{key:'3',text:'3 tam giác: 9 góc'},{key:'4',text:'0 tròn: 0 góc'}],ans:['1','3','2','4'],diff:'hard',exp:'16, 9, 8, 0 giảm dần',pts:10,sort:60},
+      {ex:7,type:'game',text:'Nhóm hình theo: có thể ghép kín và không thể ghép kín',opts:[{key:'c1',text:'Hình vuông',pair:'ghép kín'},{key:'c2',text:'Tam giác đều',pair:'ghép kín'},{key:'c3',text:'Hình chữ nhật',pair:'ghép kín'},{key:'c4',text:'Hình tròn',pair:'không ghép kín'},{key:'c5',text:'Ngũ giác bất kỳ',pair:'không ghép kín'}],ans:{},diff:'hard',exp:'Ghép kín: vuông, tam giác, chữ nhật; Không: tròn',pts:10,sort:61},
+      {ex:7,type:'game',text:'Nhóm hình theo số cạnh: 3 cạnh, 4 cạnh, 0 cạnh',opts:[{key:'c1',text:'Tam giác',pair:'3 cạnh'},{key:'c2',text:'Hình vuông',pair:'4 cạnh'},{key:'c3',text:'Hình chữ nhật',pair:'4 cạnh'},{key:'c4',text:'Hình tròn',pair:'0 cạnh'}],ans:{},diff:'hard',exp:'3: tam giác; 4: vuông, chữ nhật; 0: tròn',pts:10,sort:62},
+      {ex:7,type:'matching',text:'Nối hình với số đường đối xứng',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Hình vuông'},{key:'C',text:'Tam giác cân'}],ans:{A:'Vô số',B:'4',C:'1'},diff:'hard',exp:'Tròn: vô số; Vuông: 4; Tam giác cân: 1',pts:10,sort:63},
+      {ex:7,type:'matching',text:'Nối hình với chu vi (cạnh=4cm)',opts:[{key:'A',text:'Tam giác đều'},{key:'B',text:'Hình vuông'},{key:'C',text:'Hình chữ nhật 4×2'}],ans:{A:'12cm',B:'16cm',C:'12cm'},diff:'hard',exp:'Tam giác: 3×4=12; Vuông: 4×4=16; Chữ nhật: 2×(4+2)=12',pts:10,sort:64},
+      {ex:7,type:'matching',text:'Nối mô tả với hình học',opts:[{key:'A',text:'Có thể lăn'},{key:'B',text:'Có 4 góc vuông'},{key:'C',text:'Ít cạnh nhất có cạnh thẳng'}],ans:{A:'Hình tròn',B:'Hình vuông/chữ nhật',C:'Tam giác'},diff:'hard',exp:'Tròn lăn, vuông/chữ nhật 4 góc, tam giác ít cạnh nhất',pts:10,sort:65},
+      {ex:7,type:'fill_blank',text:'Số hình vuông nhỏ trong bảng 4×5 là [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'20'},diff:'hard',exp:'4 × 5 = 20',pts:10,sort:66},
+      {ex:7,type:'fill_blank',text:'Từ hình 3×4, cắt ra 1 hình 1×2, còn lại [b1] hình vuông nhỏ',opts:[{key:'b1',text:'?'}],ans:{b1:'10'},diff:'hard',exp:'3×4=12, 12-2=10',pts:10,sort:67},
+      {ex:7,type:'fill_blank',text:'Ghép 8 tam giác vuông cân thành [b1] hình vuông',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'hard',exp:'8 ÷ 2 = 4 hình vuông',pts:10,sort:68},
+      {ex:7,type:'drag_drop',text:'Kéo tên hình vào đúng mô tả: "4 cạnh, 4 góc vuông, 4 cạnh bằng"',opts:[{key:'A',text:'Hình tròn'},{key:'B',text:'Hình vuông'},{key:'C',text:'Tam giác'}],ans:['B'],diff:'hard',exp:'Hình vuông: 4 cạnh, 4 góc vuông, 4 cạnh bằng',pts:10,sort:69},
+      {ex:7,type:'drag_drop',text:'Kéo số: hình 5×5 cần bao nhiêu hình vuông nhỏ?',opts:[{key:'A',text:'20'},{key:'B',text:'25'},{key:'C',text:'30'}],ans:['B'],diff:'hard',exp:'5 × 5 = 25',pts:10,sort:70},
+      {ex:8,type:'multiple_choice',text:'Chọn tất cả mệnh đề đúng',opts:[{key:'A',text:'Hình tròn không có góc'},{key:'B',text:'Hình vuông là hình chữ nhật đặc biệt'},{key:'C',text:'Tam giác có 4 cạnh'},{key:'D',text:'Hình chữ nhật có 4 góc vuông'}],ans:['A','B','D'],diff:'hard',exp:'A đúng, B đúng, C sai (3 cạnh), D đúng',pts:10,sort:71},
+      {ex:8,type:'multiple_choice',text:'Số cạnh của hình 8 cạnh (bát giác) là?',opts:[{key:'A',text:'6'},{key:'B',text:'8'},{key:'C',text:'10'},{key:'D',text:'4'}],ans:['B'],diff:'hard',exp:'Bát giác = 8 cạnh',pts:10,sort:72},
+      {ex:8,type:'multiple_choice',text:'Chọn tất cả cách ghép ra hình vuông',opts:[{key:'A',text:'2 tam giác vuông cân'},{key:'B',text:'4 hình vuông nhỏ bằng nhau'},{key:'C',text:'2 hình chữ nhật bằng nhau'},{key:'D',text:'3 hình tròn'}],ans:['A','B','C'],diff:'hard',exp:'Tam giác, hình vuông, chữ nhật đều có thể ghép thành hình vuông',pts:10,sort:73},
+      {ex:8,type:'puzzle',text:'Trong bảng 4×4, bao nhiêu hình vuông 2×2?',opts:[{key:'slot_1',text:'Có [?] hình 2×2'},{key:'token_1',text:'4'},{key:'token_2',text:'9'},{key:'token_3',text:'16'}],ans:{slot_1:'token_2'},diff:'hard',exp:'(4-2+1)² = 3² = 9 hình vuông 2×2',pts:10,sort:74},
+      {ex:8,type:'puzzle',text:'Số hình tam giác tạo ra khi cắt 3 hình vuông theo đường chéo?',opts:[{key:'slot_1',text:'Được [?] tam giác'},{key:'token_1',text:'3'},{key:'token_2',text:'6'},{key:'token_3',text:'9'}],ans:{slot_1:'token_2'},diff:'hard',exp:'Mỗi hình vuông cắt đường chéo = 2 tam giác; 3 × 2 = 6',pts:10,sort:75},
+      {ex:8,type:'puzzle',text:'Hình lục giác đều tạo từ 6 tam giác đều. Tổng góc là?',opts:[{key:'slot_1',text:'Tổng góc = [?]'},{key:'token_1',text:'12'},{key:'token_2',text:'18'},{key:'token_3',text:'24'}],ans:{slot_1:'token_2'},diff:'hard',exp:'6 × 3 = 18 góc',pts:10,sort:76},
+      {ex:8,type:'sorting',text:'Sắp xếp số góc của hình từ ít đến nhiều',opts:[{key:'1',text:'Hình tròn (0)'},{key:'2',text:'Tam giác (3)'},{key:'3',text:'Tứ giác (4)'},{key:'4',text:'Ngũ giác (5)'}],ans:['1','2','3','4'],diff:'hard',exp:'0, 3, 4, 5 tăng dần',pts:10,sort:77},
+      {ex:8,type:'sorting',text:'Sắp xếp số hình vuông nhỏ giảm dần: 4×4, 3×3, 2×2, 1×1',opts:[{key:'1',text:'4×4=16'},{key:'2',text:'3×3=9'},{key:'3',text:'2×2=4'},{key:'4',text:'1×1=1'}],ans:['1','2','3','4'],diff:'hard',exp:'16, 9, 4, 1 giảm dần',pts:10,sort:78},
+      {ex:8,type:'cross_out',text:'Gạch bỏ mô tả SAI: "Hình tròn không có góc", "Hình vuông có 5 cạnh", "Tam giác có 3 đỉnh"',opts:[{key:'A',text:'Hình tròn không có góc'},{key:'B',text:'Hình vuông có 5 cạnh'},{key:'C',text:'Tam giác có 3 đỉnh'}],ans:['B'],diff:'hard',exp:'Hình vuông có 4 cạnh, không phải 5',pts:10,sort:79},
+      {ex:8,type:'cross_out',text:'Gạch bỏ hình KHÔNG thể ghép kín nhau mà không có khoảng trống',opts:[{key:'A',text:'Hình vuông'},{key:'B',text:'Hình tròn'},{key:'C',text:'Tam giác đều'},{key:'D',text:'Hình chữ nhật'}],ans:['B'],diff:'hard',exp:'Hình tròn không ghép kín được',pts:10,sort:80},
+    ]
+  },
+  135: {
+    topic: 'Luyện tập cộng trừ trong phạm vi 10',
+    questions: [
+      {ex:1,type:'single_choice',text:'5 + 4 = ?',opts:[{key:'A',text:'8'},{key:'B',text:'9'},{key:'C',text:'10'}],ans:'B',diff:'easy',exp:'5 + 4 = 9',pts:10,sort:1},
+      {ex:1,type:'single_choice',text:'10 - 6 = ?',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'5'}],ans:'B',diff:'easy',exp:'10 - 6 = 4',pts:10,sort:2},
+      {ex:1,type:'single_choice',text:'7 + 3 = ?',opts:[{key:'A',text:'9'},{key:'B',text:'10'},{key:'C',text:'11'}],ans:'B',diff:'easy',exp:'7 + 3 = 10',pts:10,sort:3},
+      {ex:1,type:'single_choice',text:'8 - 5 = ?',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:'B',diff:'easy',exp:'8 - 5 = 3',pts:10,sort:4},
+      {ex:1,type:'true_false',text:'6 + 4 = 10. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 6 + 4 = 10',pts:10,sort:5},
+      {ex:1,type:'true_false',text:'9 - 3 = 5. Đúng hay sai?',opts:null,ans:false,diff:'easy',exp:'Sai! 9 - 3 = 6',pts:10,sort:6},
+      {ex:1,type:'true_false',text:'4 + 5 = 5 + 4. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! Tính chất giao hoán của phép cộng',pts:10,sort:7},
+      {ex:1,type:'fill_blank',text:'6 + [b1] = 10',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'easy',exp:'6 + 4 = 10',pts:10,sort:8},
+      {ex:1,type:'fill_blank',text:'10 - [b1] = 7',opts:[{key:'b1',text:'?'}],ans:{b1:'3'},diff:'easy',exp:'10 - 3 = 7',pts:10,sort:9},
+      {ex:1,type:'fill_blank',text:'[b1] + 5 = 9',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'easy',exp:'4 + 5 = 9',pts:10,sort:10},
+      {ex:2,type:'counting',text:'🍎🍎🍎🍎🍎 và 🍊🍊🍊. Tổng cộng mấy quả?',opts:[{key:'d1',text:'🍎'},{key:'d2',text:'🍎'},{key:'d3',text:'🍎'},{key:'d4',text:'🍎'},{key:'d5',text:'🍎'},{key:'d6',text:'🍊'},{key:'d7',text:'🍊'},{key:'d8',text:'🍊'}],ans:'8',diff:'easy',exp:'5 + 3 = 8 quả',pts:10,sort:11},
+      {ex:2,type:'counting',text:'🐟🐟🐟🐟🐟🐟🐟🐟🐟🐟 có 10 con, bơi đi 4. Còn mấy con?',opts:[{key:'d1',text:'🐟'},{key:'d2',text:'🐟'},{key:'d3',text:'🐟'},{key:'d4',text:'🐟'},{key:'d5',text:'🐟'},{key:'d6',text:'🐟'},{key:'d7',text:'🐟'},{key:'d8',text:'🐟'},{key:'d9',text:'🐟'},{key:'d10',text:'🐟'}],ans:'6',diff:'easy',exp:'10 - 4 = 6 con cá',pts:10,sort:12},
+      {ex:2,type:'counting',text:'Đếm: ⭐⭐⭐⭐⭐⭐⭐',opts:[{key:'d1',text:'⭐'},{key:'d2',text:'⭐'},{key:'d3',text:'⭐'},{key:'d4',text:'⭐'},{key:'d5',text:'⭐'},{key:'d6',text:'⭐'},{key:'d7',text:'⭐'}],ans:'7',diff:'easy',exp:'7 ngôi sao',pts:10,sort:13},
+      {ex:2,type:'sorting',text:'Sắp xếp phép cộng theo kết quả tăng dần: 3+5, 2+4, 5+5, 4+4',opts:[{key:'1',text:'2+4=6'},{key:'2',text:'3+5=8'},{key:'3',text:'4+4=8'},{key:'4',text:'5+5=10'}],ans:['1','2','3','4'],diff:'easy',exp:'6, 8, 8, 10 tăng dần',pts:10,sort:14},
+      {ex:2,type:'sorting',text:'Sắp xếp phép trừ theo kết quả giảm dần: 9-2, 10-5, 8-4, 7-3',opts:[{key:'1',text:'9-2=7'},{key:'2',text:'8-4=4'},{key:'3',text:'10-5=5'},{key:'4',text:'7-3=4'}],ans:['1','3','2','4'],diff:'easy',exp:'7, 5, 4, 4 giảm dần',pts:10,sort:15},
+      {ex:2,type:'sorting',text:'Sắp xếp từ nhỏ đến lớn: 3+4, 5+4, 2+3, 1+8',opts:[{key:'1',text:'2+3=5'},{key:'2',text:'3+4=7'},{key:'3',text:'1+8=9'},{key:'4',text:'5+4=9'}],ans:['1','2','3','4'],diff:'easy',exp:'5, 7, 9, 9 tăng dần',pts:10,sort:16},
+      {ex:2,type:'cross_out',text:'Gạch bỏ phép tính SAI: 5+5=10, 7+3=9, 8+2=10',opts:[{key:'A',text:'5+5=10'},{key:'B',text:'7+3=9'},{key:'C',text:'8+2=10'}],ans:['B'],diff:'easy',exp:'7+3=10, không phải 9',pts:10,sort:17},
+      {ex:2,type:'cross_out',text:'Gạch bỏ phép trừ SAI: 8-3=5, 9-4=5, 10-3=6',opts:[{key:'A',text:'8-3=5'},{key:'B',text:'9-4=5'},{key:'C',text:'10-3=6'}],ans:['C'],diff:'easy',exp:'10-3=7, không phải 6',pts:10,sort:18},
+      {ex:2,type:'fill_blank',text:'4 + 3 = [b1] và 3 + 4 = [b2]',opts:[{key:'b1',text:'?'},{key:'b2',text:'?'}],ans:{b1:'7',b2:'7'},diff:'easy',exp:'4+3=3+4=7 (giao hoán)',pts:10,sort:19},
+      {ex:2,type:'fill_blank',text:'9 - 4 = [b1] và 9 - 5 = [b2]',opts:[{key:'b1',text:'?'},{key:'b2',text:'?'}],ans:{b1:'5',b2:'4'},diff:'easy',exp:'9-4=5 và 9-5=4',pts:10,sort:20},
+      {ex:3,type:'single_choice',text:'An có 7 bút, mua thêm 3. Có bao nhiêu bút?',opts:[{key:'A',text:'9'},{key:'B',text:'10'},{key:'C',text:'11'}],ans:'B',diff:'easy',exp:'7 + 3 = 10 bút',pts:10,sort:21},
+      {ex:3,type:'single_choice',text:'Có 10 kẹo, ăn 4. Còn bao nhiêu?',opts:[{key:'A',text:'5'},{key:'B',text:'6'},{key:'C',text:'7'}],ans:'B',diff:'easy',exp:'10 - 4 = 6 kẹo',pts:10,sort:22},
+      {ex:3,type:'single_choice',text:'Lớp có 8 bạn trai và 2 bạn gái. Có tất cả bao nhiêu bạn?',opts:[{key:'A',text:'9'},{key:'B',text:'10'},{key:'C',text:'11'}],ans:'B',diff:'easy',exp:'8 + 2 = 10 bạn',pts:10,sort:23},
+      {ex:3,type:'single_choice',text:'Có 9 quả bóng, vỡ 3 quả. Còn bao nhiêu?',opts:[{key:'A',text:'5'},{key:'B',text:'6'},{key:'C',text:'7'}],ans:'B',diff:'easy',exp:'9 - 3 = 6 quả bóng',pts:10,sort:24},
+      {ex:3,type:'true_false',text:'7 + 2 = 9 và 2 + 7 = 9 (giao hoán). Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! a + b = b + a',pts:10,sort:25},
+      {ex:3,type:'true_false',text:'10 - 0 = 10. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! Trừ 0 không thay đổi',pts:10,sort:26},
+      {ex:3,type:'true_false',text:'5 - 5 = 1. Đúng hay sai?',opts:null,ans:false,diff:'easy',exp:'Sai! 5 - 5 = 0',pts:10,sort:27},
+      {ex:3,type:'fill_blank',text:'Minh có 5 bưu thiếp, Lan cho thêm [b1] để Minh có 8',opts:[{key:'b1',text:'?'}],ans:{b1:'3'},diff:'easy',exp:'5 + 3 = 8',pts:10,sort:28},
+      {ex:3,type:'fill_blank',text:'Từ 10 trừ đi [b1] còn 4',opts:[{key:'b1',text:'?'}],ans:{b1:'6'},diff:'easy',exp:'10 - 6 = 4',pts:10,sort:29},
+      {ex:3,type:'counting',text:'🌸🌸🌸🌸🌸🌸 bông hoa. Cho đi 2. Còn mấy?',opts:[{key:'d1',text:'🌸'},{key:'d2',text:'🌸'},{key:'d3',text:'🌸'},{key:'d4',text:'🌸'},{key:'d5',text:'🌸'},{key:'d6',text:'🌸'}],ans:'4',diff:'easy',exp:'6 - 2 = 4 bông hoa',pts:10,sort:30},
+      {ex:4,type:'single_choice',text:'Tìm x: x + 3 = 10',opts:[{key:'A',text:'6'},{key:'B',text:'7'},{key:'C',text:'8'}],ans:'B',diff:'medium',exp:'x = 10 - 3 = 7',pts:10,sort:31},
+      {ex:4,type:'single_choice',text:'Tìm x: 9 - x = 4',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'6'}],ans:'B',diff:'medium',exp:'x = 9 - 4 = 5',pts:10,sort:32},
+      {ex:4,type:'single_choice',text:'3 + 4 + 2 = ?',opts:[{key:'A',text:'8'},{key:'B',text:'9'},{key:'C',text:'10'}],ans:'B',diff:'medium',exp:'3 + 4 = 7, 7 + 2 = 9',pts:10,sort:33},
+      {ex:4,type:'multiple_choice',text:'Chọn tất cả phép tính bằng 6',opts:[{key:'A',text:'3+3'},{key:'B',text:'9-3'},{key:'C',text:'8-2'},{key:'D',text:'4+3'}],ans:['A','B','C'],diff:'medium',exp:'3+3=6, 9-3=6, 8-2=6; 4+3=7≠6',pts:10,sort:34},
+      {ex:4,type:'multiple_choice',text:'Chọn phép tính đúng',opts:[{key:'A',text:'8+2=10'},{key:'B',text:'7+4=10'},{key:'C',text:'9-1=8'},{key:'D',text:'6+5=10'}],ans:['A','C'],diff:'medium',exp:'8+2=10, 9-1=8 đúng; 7+4=11, 6+5=11 sai',pts:10,sort:35},
+      {ex:4,type:'multiple_choice',text:'Số nào khi cộng với 5 bằng 10?',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'6'},{key:'D',text:'3'}],ans:['B'],diff:'medium',exp:'5 + 5 = 10',pts:10,sort:36},
+      {ex:4,type:'matching',text:'Nối phép tính với kết quả',opts:[{key:'A',text:'4+6'},{key:'B',text:'7+3'},{key:'C',text:'5+5'}],ans:{A:'10',B:'10',C:'10'},diff:'medium',exp:'Tất cả đều = 10',pts:10,sort:37},
+      {ex:4,type:'matching',text:'Nối bài toán với phép tính',opts:[{key:'A',text:'Có 7, thêm 2'},{key:'B',text:'Có 10, bớt 4'},{key:'C',text:'Hai nhóm 3 và 5'}],ans:{A:'7+2=9',B:'10-4=6',C:'3+5=8'},diff:'medium',exp:'Thêm=cộng, bớt=trừ',pts:10,sort:38},
+      {ex:4,type:'drag_drop',text:'Kéo số vào: 5 + _ = 10 - 2',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:['B'],diff:'medium',exp:'10-2=8, 5+3=8',pts:10,sort:39},
+      {ex:4,type:'drag_drop',text:'Kéo dấu đúng: 3+5 _ 10-3',opts:[{key:'A',text:'>'},{key:'B',text:'<'},{key:'C',text:'='}],ans:['B'],diff:'medium',exp:'8 < 7? Không, 8 > 7',pts:10,sort:40},
+      {ex:5,type:'table_fill',text:'Điền bảng cộng',opts:[{key:'headers',text:'+|4|5|6'},{key:'r1',text:'4|_r1c1|_r1c2|_r1c3'},{key:'r2',text:'5|_r2c1|_r2c2|_r2c3'}],ans:{r1c1:'8',r1c2:'9',r1c3:'10',r2c1:'9',r2c2:'10',r2c3:'11'},diff:'medium',exp:'4+4=8, 4+5=9, 4+6=10, 5+4=9, 5+5=10, 5+6=11',pts:10,sort:41},
+      {ex:5,type:'table_fill',text:'Điền bảng trừ',opts:[{key:'headers',text:'-|2|3|4'},{key:'r1',text:'8|_r1c1|_r1c2|_r1c3'},{key:'r2',text:'10|_r2c1|_r2c2|_r2c3'}],ans:{r1c1:'6',r1c2:'5',r1c3:'4',r2c1:'8',r2c2:'7',r2c3:'6'},diff:'medium',exp:'8-2=6, 8-3=5, 8-4=4, 10-2=8, 10-3=7, 10-4=6',pts:10,sort:42},
+      {ex:5,type:'number_line',text:'5 + 4 = ? (đánh dấu trên tia số)',opts:[{key:'min',text:'0'},{key:'max',text:'10'},{key:'step',text:'1'},{key:'marks',text:'0|1|2|3|4|5|6|7|8|9|10'},{key:'hidden',text:'9'}],ans:['9'],diff:'medium',exp:'5 + 4 = 9',pts:10,sort:43},
+      {ex:5,type:'number_line',text:'10 - 3 = ? (đánh dấu trên tia số)',opts:[{key:'min',text:'0'},{key:'max',text:'10'},{key:'step',text:'1'},{key:'marks',text:'0|1|2|3|4|5|6|7|8|9|10'},{key:'hidden',text:'7'}],ans:['7'],diff:'medium',exp:'10 - 3 = 7',pts:10,sort:44},
+      {ex:5,type:'puzzle',text:'Tìm x: x + 2 + 3 = 10',opts:[{key:'slot_1',text:'x = [?]'},{key:'token_1',text:'4'},{key:'token_2',text:'5'},{key:'token_3',text:'6'}],ans:{slot_1:'token_2'},diff:'medium',exp:'x + 5 = 10, x = 5',pts:10,sort:45},
+      {ex:5,type:'puzzle',text:'Điền số: 3 + _ = 5 + 3',opts:[{key:'slot_1',text:'3 + [?] = 8'},{key:'token_1',text:'4'},{key:'token_2',text:'5'},{key:'token_3',text:'6'}],ans:{slot_1:'token_2'},diff:'medium',exp:'5+3=8, 3+5=8',pts:10,sort:46},
+      {ex:5,type:'puzzle',text:'Hai số cộng lại bằng 9, một số là 4. Số kia là?',opts:[{key:'slot_1',text:'Số kia = [?]'},{key:'token_1',text:'4'},{key:'token_2',text:'5'},{key:'token_3',text:'6'}],ans:{slot_1:'token_2'},diff:'medium',exp:'9 - 4 = 5',pts:10,sort:47},
+      {ex:5,type:'matching',text:'Nối cặp bổ sung thành 10',opts:[{key:'A',text:'4'},{key:'B',text:'7'},{key:'C',text:'2'}],ans:{A:'6',B:'3',C:'8'},diff:'medium',exp:'4+6=10, 7+3=10, 2+8=10',pts:10,sort:48},
+      {ex:5,type:'matching',text:'Nối phép tính ngược nhau',opts:[{key:'A',text:'5+4=9'},{key:'B',text:'7+3=10'},{key:'C',text:'6+2=8'}],ans:{A:'9-4=5',B:'10-3=7',C:'8-2=6'},diff:'medium',exp:'Cộng và trừ là ngược nhau',pts:10,sort:49},
+      {ex:5,type:'drag_drop',text:'Kéo số vào: 8 + _ = 10 hoặc 10 - _ = 8',opts:[{key:'A',text:'1'},{key:'B',text:'2'},{key:'C',text:'3'}],ans:['B'],diff:'medium',exp:'8 + 2 = 10',pts:10,sort:50},
+      {ex:6,type:'fill_blank',text:'3 + 4 + 2 + 1 = [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'10'},diff:'hard',exp:'3+4=7, 7+2=9, 9+1=10',pts:10,sort:51},
+      {ex:6,type:'fill_blank',text:'10 - 2 - 3 = [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'5'},diff:'hard',exp:'10-2=8, 8-3=5',pts:10,sort:52},
+      {ex:6,type:'fill_blank',text:'Tìm x: 2 + x = 10 - 4',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'hard',exp:'10-4=6, 2+4=6, x=4',pts:10,sort:53},
+      {ex:6,type:'puzzle',text:'Hai số liên tiếp có tổng 9. Số nhỏ là?',opts:[{key:'slot_1',text:'Số nhỏ = [?]'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'hard',exp:'4+5=9, số nhỏ là 4',pts:10,sort:54},
+      {ex:6,type:'puzzle',text:'Tìm x: x + x = 10 - 2',opts:[{key:'slot_1',text:'x = [?]'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'hard',exp:'2x=8, x=4',pts:10,sort:55},
+      {ex:6,type:'puzzle',text:'Ba số a+b+c=10. a=3, b=4. c=?',opts:[{key:'slot_1',text:'c = [?]'},{key:'token_1',text:'2'},{key:'token_2',text:'3'},{key:'token_3',text:'4'}],ans:{slot_1:'token_2'},diff:'hard',exp:'10-3-4=3',pts:10,sort:56},
+      {ex:6,type:'multiple_choice',text:'Chọn tất cả phép tính bằng 8',opts:[{key:'A',text:'4+4'},{key:'B',text:'9-1'},{key:'C',text:'5+3'},{key:'D',text:'10-3'}],ans:['A','B','C'],diff:'hard',exp:'4+4=8, 9-1=8, 5+3=8; 10-3=7≠8',pts:10,sort:57},
+      {ex:6,type:'multiple_choice',text:'Số nào thỏa mãn: số đó + 3 > 7?',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'6'},{key:'D',text:'3'}],ans:['B','C'],diff:'hard',exp:'5+3=8>7, 6+3=9>7; 4+3=7 không >7',pts:10,sort:58},
+      {ex:6,type:'sorting',text:'Sắp xếp biểu thức theo giá trị tăng dần',opts:[{key:'1',text:'3+3=6'},{key:'2',text:'4+4=8'},{key:'3',text:'4+5=9'},{key:'4',text:'5+5=10'}],ans:['1','2','3','4'],diff:'hard',exp:'6, 8, 9, 10 tăng dần',pts:10,sort:59},
+      {ex:6,type:'sorting',text:'Sắp xếp phép trừ theo kết quả giảm dần',opts:[{key:'1',text:'10-2=8'},{key:'2',text:'9-3=6'},{key:'3',text:'8-4=4'},{key:'4',text:'7-5=2'}],ans:['1','2','3','4'],diff:'hard',exp:'8, 6, 4, 2 giảm dần',pts:10,sort:60},
+      {ex:7,type:'game',text:'Nhóm phép cộng và phép trừ',opts:[{key:'c1',text:'3+4',pair:'phép cộng'},{key:'c2',text:'5+5',pair:'phép cộng'},{key:'c3',text:'7+2',pair:'phép cộng'},{key:'c4',text:'9-3',pair:'phép trừ'},{key:'c5',text:'10-5',pair:'phép trừ'},{key:'c6',text:'8-4',pair:'phép trừ'}],ans:{},diff:'hard',exp:'Cộng: 3+4, 5+5, 7+2; Trừ: 9-3, 10-5, 8-4',pts:10,sort:61},
+      {ex:7,type:'game',text:'Nhóm phép tính theo kết quả: =8 và =10',opts:[{key:'c1',text:'4+4',pair:'=8'},{key:'c2',text:'3+5',pair:'=8'},{key:'c3',text:'9-1',pair:'=8'},{key:'c4',text:'5+5',pair:'=10'},{key:'c5',text:'7+3',pair:'=10'},{key:'c6',text:'6+4',pair:'=10'}],ans:{},diff:'hard',exp:'=8: 4+4, 3+5, 9-1; =10: 5+5, 7+3, 6+4',pts:10,sort:62},
+      {ex:7,type:'matching',text:'Nối bài toán với kết quả',opts:[{key:'A',text:'5+4-2'},{key:'B',text:'3+3+2'},{key:'C',text:'10-5+2'}],ans:{A:'7',B:'8',C:'7'},diff:'hard',exp:'5+4=9, 9-2=7; 3+3=6, 6+2=8; 10-5=5, 5+2=7',pts:10,sort:63},
+      {ex:7,type:'matching',text:'Nối câu với phép tính đúng',opts:[{key:'A',text:'Có 7 thêm 3 bớt 2'},{key:'B',text:'Có 5 bớt 3 thêm 4'},{key:'C',text:'Có 6 thêm 4 bớt 5'}],ans:{A:'8',B:'6',C:'5'},diff:'hard',exp:'7+3-2=8, 5-3+4=6, 6+4-5=5',pts:10,sort:64},
+      {ex:7,type:'matching',text:'Nối số với cách tính ra số đó',opts:[{key:'A',text:'9'},{key:'B',text:'7'},{key:'C',text:'5'}],ans:{A:'4+5',B:'10-3',C:'8-3'},diff:'hard',exp:'4+5=9, 10-3=7, 8-3=5',pts:10,sort:65},
+      {ex:7,type:'fill_blank',text:'5 + 3 - 4 + 2 = [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'6'},diff:'hard',exp:'5+3=8, 8-4=4, 4+2=6',pts:10,sort:66},
+      {ex:7,type:'fill_blank',text:'Điền: [b1] + 4 = 3 + 5',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'hard',exp:'3+5=8, 4+4=8',pts:10,sort:67},
+      {ex:7,type:'fill_blank',text:'Tìm n: n - 3 = 10 - 6',opts:[{key:'b1',text:'?'}],ans:{b1:'7'},diff:'hard',exp:'10-6=4, n-3=4, n=7',pts:10,sort:68},
+      {ex:7,type:'drag_drop',text:'Kéo số: 4 + _ + 2 = 9',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:['B'],diff:'hard',exp:'4+3+2=9',pts:10,sort:69},
+      {ex:7,type:'drag_drop',text:'Kéo dấu: 3+5 _ 4+4',opts:[{key:'A',text:'>'},{key:'B',text:'<'},{key:'C',text:'='}],ans:['C'],diff:'hard',exp:'8 = 8',pts:10,sort:70},
+      {ex:8,type:'multiple_choice',text:'Chọn tất cả phép tính bằng 9',opts:[{key:'A',text:'5+4'},{key:'B',text:'10-1'},{key:'C',text:'3+6'},{key:'D',text:'8+2'}],ans:['A','B','C'],diff:'hard',exp:'5+4=9, 10-1=9, 3+6=9; 8+2=10≠9',pts:10,sort:71},
+      {ex:8,type:'multiple_choice',text:'Chọn phép tính có kết quả lớn hơn 7',opts:[{key:'A',text:'4+5'},{key:'B',text:'3+4'},{key:'C',text:'5+5'},{key:'D',text:'6+3'}],ans:['A','C','D'],diff:'hard',exp:'4+5=9, 5+5=10, 6+3=9 đều >7',pts:10,sort:72},
+      {ex:8,type:'multiple_choice',text:'Số x thỏa mãn: 3 < x < 7 và x + 2 < 9?',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'6'},{key:'D',text:'7'}],ans:['A','B'],diff:'hard',exp:'4: 3<4<7 và 6<9; 5: 3<5<7 và 7<9; 6: 6+2=8<9 nhưng 6<7 không thỏa',pts:10,sort:73},
+      {ex:8,type:'puzzle',text:'(3+4) - (5-3) = ?',opts:[{key:'slot_1',text:'Kết quả = [?]'},{key:'token_1',text:'4'},{key:'token_2',text:'5'},{key:'token_3',text:'6'}],ans:{slot_1:'token_2'},diff:'hard',exp:'(3+4)=7, (5-3)=2, 7-2=5',pts:10,sort:74},
+      {ex:8,type:'puzzle',text:'x + 3 = 10 và y - 2 = x. y = ?',opts:[{key:'slot_1',text:'y = [?]'},{key:'token_1',text:'7'},{key:'token_2',text:'9'},{key:'token_3',text:'11'}],ans:{slot_1:'token_2'},diff:'hard',exp:'x=7, y=7+2=9',pts:10,sort:75},
+      {ex:8,type:'puzzle',text:'Tổng 4 số liên tiếp = 10. Số đầu tiên là?',opts:[{key:'slot_1',text:'Số đầu = [?]'},{key:'token_1',text:'1'},{key:'token_2',text:'2'},{key:'token_3',text:'3'}],ans:{slot_1:'token_1'},diff:'hard',exp:'1+2+3+4=10, số đầu là 1',pts:10,sort:76},
+      {ex:8,type:'sorting',text:'Sắp xếp theo giá trị tăng dần: 10-5, 3+4, 6+3, 8+2',opts:[{key:'1',text:'10-5=5'},{key:'2',text:'3+4=7'},{key:'3',text:'6+3=9'},{key:'4',text:'8+2=10'}],ans:['1','2','3','4'],diff:'hard',exp:'5, 7, 9, 10 tăng dần',pts:10,sort:77},
+      {ex:8,type:'sorting',text:'Sắp xếp theo giá trị giảm dần: 9-3, 8-2, 7-1, 6-0',opts:[{key:'1',text:'7-1=6'},{key:'2',text:'8-2=6'},{key:'3',text:'6-0=6'},{key:'4',text:'9-3=6'}],ans:['1','2','3','4'],diff:'hard',exp:'Tất cả đều = 6',pts:10,sort:78},
+      {ex:8,type:'cross_out',text:'Gạch bỏ phép tính SAI: 6+3=9, 7+3=9, 5+4=9',opts:[{key:'A',text:'6+3=9'},{key:'B',text:'7+3=9'},{key:'C',text:'5+4=9'}],ans:['B'],diff:'hard',exp:'7+3=10≠9',pts:10,sort:79},
+      {ex:8,type:'cross_out',text:'Gạch bỏ phép tính có kết quả LỚN HƠN 8: 3+4, 5+5, 4+4, 6+4',opts:[{key:'A',text:'3+4=7'},{key:'B',text:'5+5=10'},{key:'C',text:'4+4=8'},{key:'D',text:'6+4=10'}],ans:['B','D'],diff:'hard',exp:'5+5=10>8 và 6+4=10>8',pts:10,sort:80},
+    ]
+  }
+};
+
+async function seed() {
+  const conn = await mysql.createConnection(dbConfig);
+  try {
+    for (const lessonId of lessonIds) {
+      const { topic, questions } = data[lessonId];
+      console.log(`Processing lesson ${lessonId}: ${topic}`);
+      await conn.execute('DELETE FROM quizzes WHERE lessonId = ?', [lessonId]);
+      for (const q of questions) {
+        const optionsJson = q.opts ? JSON.stringify(q.opts) : null;
+        const correctAnswerJson = JSON.stringify(q.ans);
+        await conn.execute(
+          'INSERT INTO quizzes (lessonId,exerciseNumber,questionType,questionText,optionsJson,correctAnswerJson,difficultyLevel,explanation,points,sortOrder,isActive,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,1,NOW(),NOW())',
+          [lessonId, q.ex, q.type, q.text, optionsJson, correctAnswerJson, q.diff, q.exp || null, q.pts, q.sort]
+        );
+      }
+      console.log(`  ✓ Inserted ${questions.length} questions`);
+    }
+    console.log('Done!');
+  } finally {
+    await conn.end();
+  }
+}
+
+seed().catch(console.error);

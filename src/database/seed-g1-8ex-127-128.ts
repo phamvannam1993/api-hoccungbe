@@ -1,0 +1,208 @@
+import mysql from 'mysql2/promise';
+
+const dbConfig = {
+  host: 'songtute.c8spusdhenpr.ap-southeast-1.rds.amazonaws.com',
+  user: 'admin',
+  password: 'jFUnRCumnerGsGaPT5pR',
+  database: 'songtute',
+};
+
+const lessonIds = [127, 128];
+
+const data: Record<number, { topic: string; questions: any[] }> = {
+  127: {
+    topic: 'Mấy và mấy (phân tích số)',
+    questions: [
+      {ex:1,type:'single_choice',text:'5 gồm 3 và mấy?',opts:[{key:'A',text:'1'},{key:'B',text:'2'},{key:'C',text:'3'}],ans:'B',diff:'easy',exp:'3 + 2 = 5',pts:10,sort:1},
+      {ex:1,type:'single_choice',text:'4 gồm 2 và mấy?',opts:[{key:'A',text:'1'},{key:'B',text:'2'},{key:'C',text:'3'}],ans:'B',diff:'easy',exp:'2 + 2 = 4',pts:10,sort:2},
+      {ex:1,type:'single_choice',text:'6 gồm 4 và mấy?',opts:[{key:'A',text:'1'},{key:'B',text:'2'},{key:'C',text:'3'}],ans:'B',diff:'easy',exp:'4 + 2 = 6',pts:10,sort:3},
+      {ex:1,type:'single_choice',text:'8 gồm 5 và mấy?',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:'B',diff:'easy',exp:'5 + 3 = 8',pts:10,sort:4},
+      {ex:1,type:'true_false',text:'7 gồm 4 và 3. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 4 + 3 = 7',pts:10,sort:5},
+      {ex:1,type:'true_false',text:'9 gồm 6 và 4. Đúng hay sai?',opts:null,ans:false,diff:'easy',exp:'Sai! 6 + 4 = 10, không phải 9',pts:10,sort:6},
+      {ex:1,type:'true_false',text:'10 gồm 7 và 3. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 7 + 3 = 10',pts:10,sort:7},
+      {ex:1,type:'fill_blank',text:'5 gồm 1 và [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'easy',exp:'1 + 4 = 5',pts:10,sort:8},
+      {ex:1,type:'fill_blank',text:'8 gồm [b1] và 6',opts:[{key:'b1',text:'?'}],ans:{b1:'2'},diff:'easy',exp:'2 + 6 = 8',pts:10,sort:9},
+      {ex:1,type:'fill_blank',text:'10 gồm [b1] và 5',opts:[{key:'b1',text:'?'}],ans:{b1:'5'},diff:'easy',exp:'5 + 5 = 10',pts:10,sort:10},
+      {ex:2,type:'counting',text:'🍎🍎🍎 và 🍊🍊. Có tất cả mấy quả?',opts:[{key:'d1',text:'🍎'},{key:'d2',text:'🍎'},{key:'d3',text:'🍎'},{key:'d4',text:'🍊'},{key:'d5',text:'🍊'}],ans:'5',diff:'easy',exp:'3 + 2 = 5 quả',pts:10,sort:11},
+      {ex:2,type:'counting',text:'🐦🐦🐦🐦 và 🐦🐦🐦. Có tất cả mấy con?',opts:[{key:'d1',text:'🐦'},{key:'d2',text:'🐦'},{key:'d3',text:'🐦'},{key:'d4',text:'🐦'},{key:'d5',text:'🐦'},{key:'d6',text:'🐦'},{key:'d7',text:'🐦'}],ans:'7',diff:'easy',exp:'4 + 3 = 7 con',pts:10,sort:12},
+      {ex:2,type:'counting',text:'⭐⭐ và ⭐⭐⭐⭐⭐⭐. Có tất cả mấy ngôi sao?',opts:[{key:'d1',text:'⭐'},{key:'d2',text:'⭐'},{key:'d3',text:'⭐'},{key:'d4',text:'⭐'},{key:'d5',text:'⭐'},{key:'d6',text:'⭐'},{key:'d7',text:'⭐'},{key:'d8',text:'⭐'}],ans:'8',diff:'easy',exp:'2 + 6 = 8 ngôi sao',pts:10,sort:13},
+      {ex:2,type:'sorting',text:'Sắp xếp theo tổng tăng dần: 2+1, 3+2, 1+1, 4+3',opts:[{key:'1',text:'1+1=2'},{key:'2',text:'2+1=3'},{key:'3',text:'3+2=5'},{key:'4',text:'4+3=7'}],ans:['1','2','3','4'],diff:'easy',exp:'2, 3, 5, 7 tăng dần',pts:10,sort:14},
+      {ex:2,type:'sorting',text:'Sắp xếp theo tổng giảm dần: 5+4, 3+1, 2+3, 6+2',opts:[{key:'1',text:'5+4=9'},{key:'2',text:'6+2=8'},{key:'3',text:'2+3=5'},{key:'4',text:'3+1=4'}],ans:['1','2','3','4'],diff:'easy',exp:'9, 8, 5, 4 giảm dần',pts:10,sort:15},
+      {ex:2,type:'sorting',text:'Sắp xếp: 1+2, 0+3, 2+1 (đều = 3, theo a tăng dần)',opts:[{key:'1',text:'0+3'},{key:'2',text:'1+2'},{key:'3',text:'2+1'}],ans:['1','2','3'],diff:'easy',exp:'Tất cả bằng 3, sắp xếp theo số hạng đầu',pts:10,sort:16},
+      {ex:2,type:'cross_out',text:'Gạch bỏ phép tính không có tổng bằng 6: 3+3, 4+2, 2+4, 5+2',opts:[{key:'A',text:'3+3'},{key:'B',text:'4+2'},{key:'C',text:'2+4'},{key:'D',text:'5+2'}],ans:['D'],diff:'easy',exp:'5+2=7 ≠ 6',pts:10,sort:17},
+      {ex:2,type:'cross_out',text:'Gạch bỏ phép phân tích sai: 7=3+4, 7=5+2, 7=4+4',opts:[{key:'A',text:'7=3+4'},{key:'B',text:'7=5+2'},{key:'C',text:'7=4+4'}],ans:['C'],diff:'easy',exp:'4+4=8 ≠ 7',pts:10,sort:18},
+      {ex:2,type:'fill_blank',text:'6 gồm 3 và [b1], hoặc 2 và [b2]',opts:[{key:'b1',text:'?'},{key:'b2',text:'?'}],ans:{b1:'3',b2:'4'},diff:'easy',exp:'3+3=6, 2+4=6',pts:10,sort:19},
+      {ex:2,type:'fill_blank',text:'9 gồm [b1] và 4',opts:[{key:'b1',text:'?'}],ans:{b1:'5'},diff:'easy',exp:'5 + 4 = 9',pts:10,sort:20},
+      {ex:3,type:'single_choice',text:'Số nào gồm 2 phần bằng nhau?',opts:[{key:'A',text:'5'},{key:'B',text:'6'},{key:'C',text:'7'}],ans:'B',diff:'easy',exp:'6 = 3 + 3',pts:10,sort:21},
+      {ex:3,type:'single_choice',text:'3 gồm 1 và mấy?',opts:[{key:'A',text:'1'},{key:'B',text:'2'},{key:'C',text:'3'}],ans:'B',diff:'easy',exp:'1 + 2 = 3',pts:10,sort:22},
+      {ex:3,type:'single_choice',text:'10 gồm những phần nào? (Chọn 1 cách)',opts:[{key:'A',text:'4 và 5'},{key:'B',text:'6 và 4'},{key:'C',text:'7 và 2'}],ans:'B',diff:'easy',exp:'6 + 4 = 10',pts:10,sort:23},
+      {ex:3,type:'single_choice',text:'Cách phân tích nào đúng cho số 9?',opts:[{key:'A',text:'9 = 4 + 4'},{key:'B',text:'9 = 5 + 4'},{key:'C',text:'9 = 6 + 4'}],ans:'B',diff:'easy',exp:'5 + 4 = 9',pts:10,sort:24},
+      {ex:3,type:'true_false',text:'8 có thể gồm 6 và 2. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 6 + 2 = 8',pts:10,sort:25},
+      {ex:3,type:'true_false',text:'5 có thể gồm 3 và 3. Đúng hay sai?',opts:null,ans:false,diff:'easy',exp:'Sai! 3 + 3 = 6 ≠ 5',pts:10,sort:26},
+      {ex:3,type:'true_false',text:'7 có thể gồm 0 và 7. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 0 + 7 = 7',pts:10,sort:27},
+      {ex:3,type:'fill_blank',text:'4 gồm [b1] và 3',opts:[{key:'b1',text:'?'}],ans:{b1:'1'},diff:'easy',exp:'1 + 3 = 4',pts:10,sort:28},
+      {ex:3,type:'fill_blank',text:'7 gồm 5 và [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'2'},diff:'easy',exp:'5 + 2 = 7',pts:10,sort:29},
+      {ex:3,type:'counting',text:'Có 🌸🌸🌸🌸🌸 bông hoa. Chia thành 2 nhóm: 2 và mấy?',opts:[{key:'d1',text:'🌸'},{key:'d2',text:'🌸'},{key:'d3',text:'🌸'},{key:'d4',text:'🌸'},{key:'d5',text:'🌸'}],ans:'5',diff:'easy',exp:'Tổng là 5 bông. Nhóm kia có 3 bông (2+3=5)',pts:10,sort:30},
+      {ex:4,type:'single_choice',text:'Mấy và 4 bằng 9?',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'6'}],ans:'B',diff:'medium',exp:'5 + 4 = 9',pts:10,sort:31},
+      {ex:4,type:'single_choice',text:'3 và mấy bằng 10?',opts:[{key:'A',text:'6'},{key:'B',text:'7'},{key:'C',text:'8'}],ans:'B',diff:'medium',exp:'3 + 7 = 10',pts:10,sort:32},
+      {ex:4,type:'single_choice',text:'Mấy cách phân tích số 4 thành 2 số dương?',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:'B',diff:'medium',exp:'1+3, 2+2, 3+1 (3 cách)',pts:10,sort:33},
+      {ex:4,type:'multiple_choice',text:'Chọn tất cả cách phân tích đúng của số 7',opts:[{key:'A',text:'3+4'},{key:'B',text:'5+2'},{key:'C',text:'6+2'},{key:'D',text:'1+6'}],ans:['A','B','D'],diff:'medium',exp:'3+4=7, 5+2=7, 1+6=7; 6+2=8≠7',pts:10,sort:34},
+      {ex:4,type:'multiple_choice',text:'Chọn tất cả cách phân tích đúng của số 10',opts:[{key:'A',text:'5+5'},{key:'B',text:'4+6'},{key:'C',text:'3+7'},{key:'D',text:'4+5'}],ans:['A','B','C'],diff:'medium',exp:'5+5=10, 4+6=10, 3+7=10; 4+5=9≠10',pts:10,sort:35},
+      {ex:4,type:'multiple_choice',text:'Số 8 gồm những cách nào?',opts:[{key:'A',text:'4+4'},{key:'B',text:'3+5'},{key:'C',text:'2+6'},{key:'D',text:'4+5'}],ans:['A','B','C'],diff:'medium',exp:'4+4=8, 3+5=8, 2+6=8; 4+5=9≠8',pts:10,sort:36},
+      {ex:4,type:'matching',text:'Nối số với cách phân tích',opts:[{key:'A',text:'6'},{key:'B',text:'8'},{key:'C',text:'10'}],ans:{A:'4+2',B:'5+3',C:'6+4'},diff:'medium',exp:'4+2=6, 5+3=8, 6+4=10',pts:10,sort:37},
+      {ex:4,type:'matching',text:'Nối phép tính với tổng',opts:[{key:'A',text:'3+6'},{key:'B',text:'4+5'},{key:'C',text:'7+2'}],ans:{A:'9',B:'9',C:'9'},diff:'medium',exp:'3+6=9, 4+5=9, 7+2=9',pts:10,sort:38},
+      {ex:4,type:'drag_drop',text:'Kéo số vào: _ + 3 = 7',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'5'}],ans:['B'],diff:'medium',exp:'4 + 3 = 7',pts:10,sort:39},
+      {ex:4,type:'drag_drop',text:'Kéo số vào: 6 + _ = 10',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'5'}],ans:['B'],diff:'medium',exp:'6 + 4 = 10',pts:10,sort:40},
+      {ex:5,type:'table_fill',text:'Điền các cách phân tích số 6',opts:[{key:'headers',text:'Phần 1|Phần 2|Tổng'},{key:'r1',text:'1|_r1c1|6'},{key:'r2',text:'2|_r2c1|6'},{key:'r3',text:'3|_r3c1|6'}],ans:{r1c1:'5',r2c1:'4',r3c1:'3'},diff:'medium',exp:'1+5=6, 2+4=6, 3+3=6',pts:10,sort:41},
+      {ex:5,type:'table_fill',text:'Điền cách phân tích số 8',opts:[{key:'headers',text:'Phần 1|Phần 2|Tổng'},{key:'r1',text:'2|_r1c1|8'},{key:'r2',text:'3|_r2c1|8'}],ans:{r1c1:'6',r2c1:'5'},diff:'medium',exp:'2+6=8, 3+5=8',pts:10,sort:42},
+      {ex:5,type:'number_line',text:'Trên tia số, 4 + ? = 7',opts:[{key:'min',text:'0'},{key:'max',text:'10'},{key:'step',text:'1'},{key:'marks',text:'0|1|2|3|4|5|6|7|8|9|10'},{key:'hidden',text:'7'}],ans:['7'],diff:'medium',exp:'4 + 3 = 7, đánh dấu 7 trên tia số',pts:10,sort:43},
+      {ex:5,type:'number_line',text:'Trên tia số từ 0-10, tìm điểm cách 3 điểm so với số 6 (về bên phải)',opts:[{key:'min',text:'0'},{key:'max',text:'10'},{key:'step',text:'1'},{key:'marks',text:'0|1|2|3|4|5|6|7|8|9|10'},{key:'hidden',text:'9'}],ans:['9'],diff:'medium',exp:'6 + 3 = 9',pts:10,sort:44},
+      {ex:5,type:'puzzle',text:'Điền vào: _ + _ = 9 (hai số bằng nhau gần nhất)',opts:[{key:'slot_1',text:'[?] + [?] = 9 (gần 4+5)'},{key:'token_1',text:'4'},{key:'token_2',text:'5'},{key:'token_3',text:'3'}],ans:{slot_1:'token_1'},diff:'medium',exp:'4 + 5 = 9 (không thể chia đôi chẵn)',pts:10,sort:45},
+      {ex:5,type:'puzzle',text:'Điền số: 5 + ? = 8',opts:[{key:'slot_1',text:'5 + [?] = 8'},{key:'token_1',text:'2'},{key:'token_2',text:'3'},{key:'token_3',text:'4'}],ans:{slot_1:'token_2'},diff:'medium',exp:'5 + 3 = 8',pts:10,sort:46},
+      {ex:5,type:'puzzle',text:'Điền số: ? + 6 = 9',opts:[{key:'slot_1',text:'[?] + 6 = 9'},{key:'token_1',text:'2'},{key:'token_2',text:'3'},{key:'token_3',text:'4'}],ans:{slot_1:'token_2'},diff:'medium',exp:'3 + 6 = 9',pts:10,sort:47},
+      {ex:5,type:'matching',text:'Nối phép tính bổ sung cho nhau thành 10',opts:[{key:'A',text:'3+?=10'},{key:'B',text:'6+?=10'},{key:'C',text:'8+?=10'}],ans:{A:'7',B:'4',C:'2'},diff:'medium',exp:'3+7=10, 6+4=10, 8+2=10',pts:10,sort:48},
+      {ex:5,type:'matching',text:'Nối phép phân tích đúng',opts:[{key:'A',text:'5 = ?'},{key:'B',text:'7 = ?'},{key:'C',text:'9 = ?'}],ans:{A:'2+3',B:'4+3',C:'5+4'},diff:'medium',exp:'2+3=5, 4+3=7, 5+4=9',pts:10,sort:49},
+      {ex:5,type:'drag_drop',text:'Kéo thẻ để hoàn thành: 7 = _ + 3',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'5'}],ans:['B'],diff:'medium',exp:'7 = 4 + 3',pts:10,sort:50},
+      {ex:6,type:'fill_blank',text:'Số có bao nhiêu cách phân tích thành 2 số tự nhiên (kể cả 0): số 5 có [b1] cách',opts:[{key:'b1',text:'?'}],ans:{b1:'6'},diff:'hard',exp:'0+5, 1+4, 2+3, 3+2, 4+1, 5+0 = 6 cách',pts:10,sort:51},
+      {ex:6,type:'fill_blank',text:'Tổng 2 số: số lớn hơn số nhỏ 4, tổng bằng 10. Số nhỏ là [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'3'},diff:'hard',exp:'x + (x+4) = 10, 2x = 6, x = 3',pts:10,sort:52},
+      {ex:6,type:'fill_blank',text:'8 = [b1] + 3 + 2',opts:[{key:'b1',text:'?'}],ans:{b1:'3'},diff:'hard',exp:'3 + 3 + 2 = 8',pts:10,sort:53},
+      {ex:6,type:'puzzle',text:'Tìm 2 số liên tiếp có tổng bằng 9',opts:[{key:'slot_1',text:'Số nhỏ = [?]'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'hard',exp:'4 + 5 = 9',pts:10,sort:54},
+      {ex:6,type:'puzzle',text:'Tìm số: _ + _ = 6 (hai số giống nhau)',opts:[{key:'slot_1',text:'Mỗi số = [?]'},{key:'token_1',text:'2'},{key:'token_2',text:'3'},{key:'token_3',text:'4'}],ans:{slot_1:'token_2'},diff:'hard',exp:'3 + 3 = 6',pts:10,sort:55},
+      {ex:6,type:'puzzle',text:'Có 3 số: a, b, c. a+b=7, b+c=8, a=3. Tìm c',opts:[{key:'slot_1',text:'c = [?]'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'hard',exp:'a+b=7, 3+b=7, b=4; b+c=8, 4+c=8, c=4',pts:10,sort:56},
+      {ex:6,type:'multiple_choice',text:'Chọn tất cả phân tích đúng của 9',opts:[{key:'A',text:'9=1+8'},{key:'B',text:'9=4+5'},{key:'C',text:'9=3+6'},{key:'D',text:'9=5+5'}],ans:['A','B','C'],diff:'hard',exp:'1+8=9, 4+5=9, 3+6=9; 5+5=10≠9',pts:10,sort:57},
+      {ex:6,type:'multiple_choice',text:'Số 10 có những cách phân tích nào thành 2 số từ 1-9?',opts:[{key:'A',text:'2+8'},{key:'B',text:'4+6'},{key:'C',text:'5+5'},{key:'D',text:'3+8'}],ans:['A','B','C'],diff:'hard',exp:'2+8=10, 4+6=10, 5+5=10; 3+8=11≠10',pts:10,sort:58},
+      {ex:6,type:'sorting',text:'Sắp xếp cách phân tích theo phần đầu tăng dần: 5+4, 3+6, 7+2, 1+8',opts:[{key:'1',text:'1+8'},{key:'2',text:'3+6'},{key:'3',text:'5+4'},{key:'4',text:'7+2'}],ans:['1','2','3','4'],diff:'hard',exp:'1, 3, 5, 7 tăng dần',pts:10,sort:59},
+      {ex:6,type:'sorting',text:'Sắp xếp các tổng từ lớn đến nhỏ: 3+5, 4+6, 2+7, 1+8',opts:[{key:'1',text:'4+6=10'},{key:'2',text:'1+8=9'},{key:'3',text:'2+7=9'},{key:'4',text:'3+5=8'}],ans:['1','2','3','4'],diff:'hard',exp:'10, 9, 9, 8 giảm dần',pts:10,sort:60},
+      {ex:7,type:'game',text:'Nhóm các phân tích số 8 và không phải số 8',opts:[{key:'c1',text:'4+4',pair:'số 8'},{key:'c2',text:'3+5',pair:'số 8'},{key:'c3',text:'6+2',pair:'số 8'},{key:'c4',text:'5+4',pair:'không phải 8'},{key:'c5',text:'7+2',pair:'không phải 8'},{key:'c6',text:'6+3',pair:'không phải 8'}],ans:{},diff:'hard',exp:'=8: 4+4, 3+5, 6+2; ≠8: 5+4=9, 7+2=9, 6+3=9',pts:10,sort:61},
+      {ex:7,type:'game',text:'Nhóm phân tích theo tổng: tổng=7 và tổng=9',opts:[{key:'c1',text:'3+4',pair:'tổng 7'},{key:'c2',text:'5+2',pair:'tổng 7'},{key:'c3',text:'6+1',pair:'tổng 7'},{key:'c4',text:'4+5',pair:'tổng 9'},{key:'c5',text:'3+6',pair:'tổng 9'},{key:'c6',text:'2+7',pair:'tổng 9'}],ans:{},diff:'hard',exp:'=7: 3+4, 5+2, 6+1; =9: 4+5, 3+6, 2+7',pts:10,sort:62},
+      {ex:7,type:'matching',text:'Nối phân tích với tổng',opts:[{key:'A',text:'4+3'},{key:'B',text:'5+3'},{key:'C',text:'6+3'}],ans:{A:'7',B:'8',C:'9'},diff:'hard',exp:'4+3=7, 5+3=8, 6+3=9',pts:10,sort:63},
+      {ex:7,type:'matching',text:'Nối các cặp bổ sung cho nhau thành 8',opts:[{key:'A',text:'6'},{key:'B',text:'5'},{key:'C',text:'3'}],ans:{A:'2',B:'3',C:'5'},diff:'hard',exp:'6+2=8, 5+3=8, 3+5=8',pts:10,sort:64},
+      {ex:7,type:'matching',text:'Nối phân tích 3 số với tổng',opts:[{key:'A',text:'1+2+3'},{key:'B',text:'2+3+4'},{key:'C',text:'3+3+3'}],ans:{A:'6',B:'9',C:'9'},diff:'hard',exp:'1+2+3=6, 2+3+4=9, 3+3+3=9',pts:10,sort:65},
+      {ex:7,type:'fill_blank',text:'9 = 3 + 3 + [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'3'},diff:'hard',exp:'3 + 3 + 3 = 9',pts:10,sort:66},
+      {ex:7,type:'fill_blank',text:'10 = 4 + [b1] + 2',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'hard',exp:'4 + 4 + 2 = 10',pts:10,sort:67},
+      {ex:7,type:'fill_blank',text:'Số nào gồm 2 phần bằng nhau và bằng 8? [b1] + [b1] = 8',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'hard',exp:'4 + 4 = 8',pts:10,sort:68},
+      {ex:7,type:'drag_drop',text:'Kéo số vào: 10 = 3 + _ + 4',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:['B'],diff:'hard',exp:'3 + 3 + 4 = 10',pts:10,sort:69},
+      {ex:7,type:'drag_drop',text:'Kéo số vào: 9 = _ + 4 + 2',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:['B'],diff:'hard',exp:'3 + 4 + 2 = 9',pts:10,sort:70},
+      {ex:8,type:'multiple_choice',text:'Chọn tất cả cách phân tích đúng của 6',opts:[{key:'A',text:'1+5'},{key:'B',text:'2+4'},{key:'C',text:'3+3'},{key:'D',text:'4+3'}],ans:['A','B','C'],diff:'hard',exp:'1+5=6, 2+4=6, 3+3=6; 4+3=7≠6',pts:10,sort:71},
+      {ex:8,type:'multiple_choice',text:'Chọn phân tích có phần đầu lớn hơn phần sau cho số 8',opts:[{key:'A',text:'5+3'},{key:'B',text:'6+2'},{key:'C',text:'7+1'},{key:'D',text:'4+4'}],ans:['A','B','C'],diff:'hard',exp:'5>3, 6>2, 7>1 đều có phần đầu lớn hơn',pts:10,sort:72},
+      {ex:8,type:'multiple_choice',text:'Cách phân tích nào tạo ra số 10?',opts:[{key:'A',text:'7+3'},{key:'B',text:'8+2'},{key:'C',text:'9+1'},{key:'D',text:'6+5'}],ans:['A','B','C'],diff:'hard',exp:'7+3=10, 8+2=10, 9+1=10; 6+5=11≠10',pts:10,sort:73},
+      {ex:8,type:'puzzle',text:'Tìm a: a + a + 2 = 10',opts:[{key:'slot_1',text:'a = [?]'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'hard',exp:'2a + 2 = 10, 2a = 8, a = 4',pts:10,sort:74},
+      {ex:8,type:'puzzle',text:'Tìm x: x + 3 = 5 + 2',opts:[{key:'slot_1',text:'x = [?]'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'hard',exp:'x + 3 = 7, x = 4',pts:10,sort:75},
+      {ex:8,type:'puzzle',text:'Điền số: 2 + _ + 4 = 9',opts:[{key:'slot_1',text:'2 + [?] + 4 = 9'},{key:'token_1',text:'2'},{key:'token_2',text:'3'},{key:'token_3',text:'4'}],ans:{slot_1:'token_2'},diff:'hard',exp:'2 + 3 + 4 = 9',pts:10,sort:76},
+      {ex:8,type:'sorting',text:'Sắp xếp cách phân tích số 9 theo phần đầu tăng: 7+2, 5+4, 3+6, 1+8',opts:[{key:'1',text:'1+8'},{key:'2',text:'3+6'},{key:'3',text:'5+4'},{key:'4',text:'7+2'}],ans:['1','2','3','4'],diff:'hard',exp:'1, 3, 5, 7 tăng dần',pts:10,sort:77},
+      {ex:8,type:'sorting',text:'Sắp xếp tổng tăng dần: 2+3+4, 1+2+3, 3+3+3, 2+2+2',opts:[{key:'1',text:'2+2+2=6'},{key:'2',text:'1+2+3=6'},{key:'3',text:'2+3+4=9'},{key:'4',text:'3+3+3=9'}],ans:['1','2','3','4'],diff:'hard',exp:'6=6, 9=9',pts:10,sort:78},
+      {ex:8,type:'cross_out',text:'Gạch bỏ phân tích sai của số 7: 3+4, 5+2, 4+4, 1+6',opts:[{key:'A',text:'3+4=7'},{key:'B',text:'5+2=7'},{key:'C',text:'4+4=8'},{key:'D',text:'1+6=7'}],ans:['C'],diff:'hard',exp:'4+4=8 ≠ 7',pts:10,sort:79},
+      {ex:8,type:'cross_out',text:'Gạch bỏ tất cả phân tích KHÔNG bằng 10: 6+4, 5+6, 7+3, 4+7',opts:[{key:'A',text:'6+4=10'},{key:'B',text:'5+6=11'},{key:'C',text:'7+3=10'},{key:'D',text:'4+7=11'}],ans:['B','D'],diff:'hard',exp:'5+6=11 và 4+7=11 đều ≠ 10',pts:10,sort:80},
+    ]
+  },
+  128: {
+    topic: 'Luyện tập chung (Ôn tập số 0-10)',
+    questions: [
+      {ex:1,type:'single_choice',text:'3 + 4 = ?',opts:[{key:'A',text:'6'},{key:'B',text:'7'},{key:'C',text:'8'}],ans:'B',diff:'easy',exp:'3 + 4 = 7',pts:10,sort:1},
+      {ex:1,type:'single_choice',text:'9 - 5 = ?',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'5'}],ans:'B',diff:'easy',exp:'9 - 5 = 4',pts:10,sort:2},
+      {ex:1,type:'single_choice',text:'Số nào lớn hơn 6 nhưng nhỏ hơn 9?',opts:[{key:'A',text:'5'},{key:'B',text:'7'},{key:'C',text:'10'}],ans:'B',diff:'easy',exp:'7 là số nằm giữa 6 và 9',pts:10,sort:3},
+      {ex:1,type:'single_choice',text:'6 gồm 3 và mấy?',opts:[{key:'A',text:'2'},{key:'B',text:'3'},{key:'C',text:'4'}],ans:'B',diff:'easy',exp:'3 + 3 = 6',pts:10,sort:4},
+      {ex:1,type:'true_false',text:'5 + 5 = 10. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 5 + 5 = 10',pts:10,sort:5},
+      {ex:1,type:'true_false',text:'8 > 9. Đúng hay sai?',opts:null,ans:false,diff:'easy',exp:'Sai! 8 < 9',pts:10,sort:6},
+      {ex:1,type:'true_false',text:'7 gồm 4 và 3. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 4 + 3 = 7',pts:10,sort:7},
+      {ex:1,type:'fill_blank',text:'4 + [b1] = 9',opts:[{key:'b1',text:'?'}],ans:{b1:'5'},diff:'easy',exp:'4 + 5 = 9',pts:10,sort:8},
+      {ex:1,type:'fill_blank',text:'10 - [b1] = 3',opts:[{key:'b1',text:'?'}],ans:{b1:'7'},diff:'easy',exp:'10 - 7 = 3',pts:10,sort:9},
+      {ex:1,type:'fill_blank',text:'[b1] > 6 và [b1] < 8',opts:[{key:'b1',text:'?'}],ans:{b1:'7'},diff:'easy',exp:'7 nằm giữa 6 và 8',pts:10,sort:10},
+      {ex:2,type:'counting',text:'Đếm: 🐱🐱🐱🐱🐱🐱🐱',opts:[{key:'d1',text:'🐱'},{key:'d2',text:'🐱'},{key:'d3',text:'🐱'},{key:'d4',text:'🐱'},{key:'d5',text:'🐱'},{key:'d6',text:'🐱'},{key:'d7',text:'🐱'}],ans:'7',diff:'easy',exp:'7 con mèo',pts:10,sort:11},
+      {ex:2,type:'counting',text:'Đếm: 🌟🌟🌟🌟🌟🌟🌟🌟🌟',opts:[{key:'d1',text:'🌟'},{key:'d2',text:'🌟'},{key:'d3',text:'🌟'},{key:'d4',text:'🌟'},{key:'d5',text:'🌟'},{key:'d6',text:'🌟'},{key:'d7',text:'🌟'},{key:'d8',text:'🌟'},{key:'d9',text:'🌟'}],ans:'9',diff:'easy',exp:'9 ngôi sao',pts:10,sort:12},
+      {ex:2,type:'counting',text:'Nhóm 1: 🍎🍎🍎🍎 và nhóm 2: 🍊🍊🍊. Tổng mấy quả?',opts:[{key:'d1',text:'🍎'},{key:'d2',text:'🍎'},{key:'d3',text:'🍎'},{key:'d4',text:'🍎'},{key:'d5',text:'🍊'},{key:'d6',text:'🍊'},{key:'d7',text:'🍊'}],ans:'7',diff:'easy',exp:'4 + 3 = 7 quả',pts:10,sort:13},
+      {ex:2,type:'sorting',text:'Sắp xếp từ nhỏ đến lớn: 8, 3, 10, 5, 1',opts:[{key:'1',text:'1'},{key:'2',text:'3'},{key:'3',text:'5'},{key:'4',text:'8'},{key:'5',text:'10'}],ans:['1','2','3','4','5'],diff:'easy',exp:'1, 3, 5, 8, 10 tăng dần',pts:10,sort:14},
+      {ex:2,type:'sorting',text:'Sắp xếp phép tính theo kết quả giảm dần: 3+4, 2+5, 6+4, 5+3',opts:[{key:'1',text:'6+4=10'},{key:'2',text:'3+4=7'},{key:'3',text:'2+5=7'},{key:'4',text:'5+3=8'}],ans:['1','4','2','3'],diff:'easy',exp:'10, 8, 7, 7 giảm dần',pts:10,sort:15},
+      {ex:2,type:'sorting',text:'Sắp xếp từ lớn đến nhỏ: 9-2, 8-1, 7-0',opts:[{key:'1',text:'8-1=7'},{key:'2',text:'9-2=7'},{key:'3',text:'7-0=7'}],ans:['1','2','3'],diff:'easy',exp:'Tất cả đều bằng 7',pts:10,sort:16},
+      {ex:2,type:'cross_out',text:'Gạch bỏ số không thuộc dãy tự nhiên 0-10: 5, 11, 8, 3',opts:[{key:'A',text:'5'},{key:'B',text:'11'},{key:'C',text:'8'},{key:'D',text:'3'}],ans:['B'],diff:'easy',exp:'11 không thuộc 0-10',pts:10,sort:17},
+      {ex:2,type:'cross_out',text:'Gạch bỏ phép tính SAI: 3+4=7, 5+5=10, 6+3=8',opts:[{key:'A',text:'3+4=7'},{key:'B',text:'5+5=10'},{key:'C',text:'6+3=8'}],ans:['C'],diff:'easy',exp:'6+3=9 ≠ 8',pts:10,sort:18},
+      {ex:2,type:'fill_blank',text:'Điền dãy số: 0, 2, 4, [b1], 8, [b2]',opts:[{key:'b1',text:'?'},{key:'b2',text:'?'}],ans:{b1:'6',b2:'10'},diff:'easy',exp:'Dãy số chẵn: 0, 2, 4, 6, 8, 10',pts:10,sort:19},
+      {ex:2,type:'fill_blank',text:'Điền dãy số: 1, 3, 5, [b1], 9',opts:[{key:'b1',text:'?'}],ans:{b1:'7'},diff:'easy',exp:'Dãy số lẻ: 1, 3, 5, 7, 9',pts:10,sort:20},
+      {ex:3,type:'single_choice',text:'An có 5 bút, mua thêm 3 bút. An có tất cả mấy bút?',opts:[{key:'A',text:'7'},{key:'B',text:'8'},{key:'C',text:'9'}],ans:'B',diff:'easy',exp:'5 + 3 = 8 bút',pts:10,sort:21},
+      {ex:3,type:'single_choice',text:'Lớp có 10 học sinh, vắng 2. Có mấy học sinh?',opts:[{key:'A',text:'7'},{key:'B',text:'8'},{key:'C',text:'9'}],ans:'B',diff:'easy',exp:'10 - 2 = 8 học sinh',pts:10,sort:22},
+      {ex:3,type:'single_choice',text:'Số nào vừa lớn hơn 4 vừa là số chẵn?',opts:[{key:'A',text:'5'},{key:'B',text:'6'},{key:'C',text:'7'}],ans:'B',diff:'easy',exp:'6 > 4 và 6 là số chẵn',pts:10,sort:23},
+      {ex:3,type:'single_choice',text:'Bình có 7 viên bi, cho bạn 2. Còn mấy viên?',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'6'}],ans:'B',diff:'easy',exp:'7 - 2 = 5 viên bi',pts:10,sort:24},
+      {ex:3,type:'true_false',text:'Dãy số chẵn từ 0-10 có 6 số. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 0, 2, 4, 6, 8, 10 = 6 số',pts:10,sort:25},
+      {ex:3,type:'true_false',text:'Dãy số lẻ từ 1-9 có 5 số. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 1, 3, 5, 7, 9 = 5 số',pts:10,sort:26},
+      {ex:3,type:'true_false',text:'7 + 3 = 9 + 1. Đúng hay sai?',opts:null,ans:true,diff:'easy',exp:'Đúng! 10 = 10',pts:10,sort:27},
+      {ex:3,type:'fill_blank',text:'2 + 3 + [b1] = 9',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'easy',exp:'2 + 3 + 4 = 9',pts:10,sort:28},
+      {ex:3,type:'fill_blank',text:'Số liền sau của 9 là [b1]',opts:[{key:'b1',text:'?'}],ans:{b1:'10'},diff:'easy',exp:'10 đứng ngay sau 9',pts:10,sort:29},
+      {ex:3,type:'counting',text:'Đếm: 🦋🦋🦋🦋🦋🦋🦋🦋🦋🦋',opts:[{key:'d1',text:'🦋'},{key:'d2',text:'🦋'},{key:'d3',text:'🦋'},{key:'d4',text:'🦋'},{key:'d5',text:'🦋'},{key:'d6',text:'🦋'},{key:'d7',text:'🦋'},{key:'d8',text:'🦋'},{key:'d9',text:'🦋'},{key:'d10',text:'🦋'}],ans:'10',diff:'easy',exp:'10 con bướm',pts:10,sort:30},
+      {ex:4,type:'single_choice',text:'Nếu a = 3 và b = 4, thì a + b = ?',opts:[{key:'A',text:'6'},{key:'B',text:'7'},{key:'C',text:'8'}],ans:'B',diff:'medium',exp:'3 + 4 = 7',pts:10,sort:31},
+      {ex:4,type:'single_choice',text:'Tìm x: x + 5 = 10',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'6'}],ans:'B',diff:'medium',exp:'x = 10 - 5 = 5',pts:10,sort:32},
+      {ex:4,type:'single_choice',text:'Minh có nhiều hơn Lan 3 bút. Lan có 4. Minh có mấy?',opts:[{key:'A',text:'6'},{key:'B',text:'7'},{key:'C',text:'8'}],ans:'B',diff:'medium',exp:'4 + 3 = 7 bút',pts:10,sort:33},
+      {ex:4,type:'multiple_choice',text:'Chọn tất cả phép tính bằng 8',opts:[{key:'A',text:'4+4'},{key:'B',text:'5+3'},{key:'C',text:'9-1'},{key:'D',text:'10-3'}],ans:['A','B','C'],diff:'medium',exp:'4+4=8, 5+3=8, 9-1=8; 10-3=7≠8',pts:10,sort:34},
+      {ex:4,type:'multiple_choice',text:'Chọn số chẵn trong: 3, 6, 7, 8, 9, 10',opts:[{key:'A',text:'6'},{key:'B',text:'8'},{key:'C',text:'10'},{key:'D',text:'3'}],ans:['A','B','C'],diff:'medium',exp:'6, 8, 10 là số chẵn',pts:10,sort:35},
+      {ex:4,type:'multiple_choice',text:'Chọn câu đúng',opts:[{key:'A',text:'5+4>10'},{key:'B',text:'3+6=9'},{key:'C',text:'8-2>5'},{key:'D',text:'7+2<8'}],ans:['B','C'],diff:'medium',exp:'3+6=9 đúng; 6>5 đúng; 9>10 sai; 9<8 sai',pts:10,sort:36},
+      {ex:4,type:'matching',text:'Nối phép tính với kết quả',opts:[{key:'A',text:'4+5'},{key:'B',text:'7+2'},{key:'C',text:'10-1'}],ans:{A:'9',B:'9',C:'9'},diff:'medium',exp:'4+5=9, 7+2=9, 10-1=9',pts:10,sort:37},
+      {ex:4,type:'matching',text:'Nối bài toán với phép tính',opts:[{key:'A',text:'Thêm 3 vào 5'},{key:'B',text:'Bớt 4 từ 9'},{key:'C',text:'Tổng 6 và 4'}],ans:{A:'5+3=8',B:'9-4=5',C:'6+4=10'},diff:'medium',exp:'Thêm=cộng, bớt=trừ, tổng=cộng',pts:10,sort:38},
+      {ex:4,type:'drag_drop',text:'Kéo số vào: 3 + _ = 10 - 3',opts:[{key:'A',text:'3'},{key:'B',text:'4'},{key:'C',text:'5'}],ans:['B'],diff:'medium',exp:'3 + 4 = 7 = 10 - 3',pts:10,sort:39},
+      {ex:4,type:'drag_drop',text:'Kéo dấu: 2+7 _ 5+5',opts:[{key:'A',text:'>'},{key:'B',text:'<'},{key:'C',text:'='}],ans:['B'],diff:'medium',exp:'9 < 10',pts:10,sort:40},
+      {ex:5,type:'table_fill',text:'Điền bảng cộng',opts:[{key:'headers',text:'+|3|4|5'},{key:'r1',text:'5|_r1c1|_r1c2|_r1c3'},{key:'r2',text:'4|_r2c1|_r2c2|_r2c3'}],ans:{r1c1:'8',r1c2:'9',r1c3:'10',r2c1:'7',r2c2:'8',r2c3:'9'},diff:'medium',exp:'5+3=8, 5+4=9, 5+5=10, 4+3=7, 4+4=8, 4+5=9',pts:10,sort:41},
+      {ex:5,type:'table_fill',text:'Điền bảng trừ',opts:[{key:'headers',text:'-|3|4|5'},{key:'r1',text:'9|_r1c1|_r1c2|_r1c3'},{key:'r2',text:'10|_r2c1|_r2c2|_r2c3'}],ans:{r1c1:'6',r1c2:'5',r1c3:'4',r2c1:'7',r2c2:'6',r2c3:'5'},diff:'medium',exp:'9-3=6, 9-4=5, 9-5=4, 10-3=7, 10-4=6, 10-5=5',pts:10,sort:42},
+      {ex:5,type:'number_line',text:'Trên tia số, tìm số thỏa mãn: số đó cộng 4 bằng 10',opts:[{key:'min',text:'0'},{key:'max',text:'10'},{key:'step',text:'1'},{key:'marks',text:'0|1|2|3|4|5|6|7|8|9|10'},{key:'hidden',text:'6'}],ans:['6'],diff:'medium',exp:'6 + 4 = 10',pts:10,sort:43},
+      {ex:5,type:'number_line',text:'Tìm số: trừ đi 3 còn 5',opts:[{key:'min',text:'0'},{key:'max',text:'10'},{key:'step',text:'1'},{key:'marks',text:'0|1|2|3|4|5|6|7|8|9|10'},{key:'hidden',text:'8'}],ans:['8'],diff:'medium',exp:'8 - 3 = 5',pts:10,sort:44},
+      {ex:5,type:'puzzle',text:'Tìm số bí ẩn: tôi lớn hơn 6, nhỏ hơn 9, là số lẻ',opts:[{key:'slot_1',text:'Số bí ẩn = [?]'},{key:'token_1',text:'7'},{key:'token_2',text:'8'},{key:'token_3',text:'5'}],ans:{slot_1:'token_1'},diff:'medium',exp:'7: lớn hơn 6, nhỏ hơn 9, là số lẻ',pts:10,sort:45},
+      {ex:5,type:'puzzle',text:'Số bí ẩn: cộng 3 bằng 10, trừ 4 còn?',opts:[{key:'slot_1',text:'Kết quả = [?]'},{key:'token_1',text:'2'},{key:'token_2',text:'3'},{key:'token_3',text:'4'}],ans:{slot_1:'token_2'},diff:'medium',exp:'10-3=7, 7-4=3',pts:10,sort:46},
+      {ex:5,type:'puzzle',text:'Điền số: _ + _ = 10, hai số liên tiếp',opts:[{key:'slot_1',text:'Số nhỏ = [?]'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'medium',exp:'4 + 6 không liên tiếp; đáp án gần nhất là 4+5=9 hoặc 5+5=10',pts:10,sort:47},
+      {ex:5,type:'matching',text:'Nối số với mô tả',opts:[{key:'A',text:'7'},{key:'B',text:'8'},{key:'C',text:'9'}],ans:{A:'3+4',B:'4+4',C:'5+4'},diff:'medium',exp:'3+4=7, 4+4=8, 5+4=9',pts:10,sort:48},
+      {ex:5,type:'matching',text:'Nối phép tính đảo nhau',opts:[{key:'A',text:'5+3'},{key:'B',text:'6+2'},{key:'C',text:'7+1'}],ans:{A:'3+5',B:'2+6',C:'1+7'},diff:'medium',exp:'Tính chất giao hoán a+b=b+a',pts:10,sort:49},
+      {ex:5,type:'drag_drop',text:'Kéo thẻ: số chẵn trong 1-10 theo thứ tự',opts:[{key:'A',text:'2'},{key:'B',text:'4'},{key:'C',text:'6'},{key:'D',text:'8'},{key:'E',text:'10'}],ans:['A','B','C','D','E'],diff:'medium',exp:'2, 4, 6, 8, 10 là dãy số chẵn',pts:10,sort:50},
+      {ex:6,type:'fill_blank',text:'Tìm x: 3 + x = 10 - 2',opts:[{key:'b1',text:'?'}],ans:{b1:'5'},diff:'hard',exp:'10-2=8, 3+5=8, x=5',pts:10,sort:51},
+      {ex:6,type:'fill_blank',text:'Dãy số: 1, 4, 7, [b1], ... (cộng 3 mỗi lần)',opts:[{key:'b1',text:'?'}],ans:{b1:'10'},diff:'hard',exp:'7 + 3 = 10',pts:10,sort:52},
+      {ex:6,type:'fill_blank',text:'Nếu a+b=10 và a-b=2, thì a=[b1] và b=[b2]',opts:[{key:'b1',text:'?'},{key:'b2',text:'?'}],ans:{b1:'6',b2:'4'},diff:'hard',exp:'a=6, b=4; 6+4=10 và 6-4=2',pts:10,sort:53},
+      {ex:6,type:'puzzle',text:'Điền số bí ẩn: tôi cộng với chính mình bằng 10',opts:[{key:'slot_1',text:'Số = [?]'},{key:'token_1',text:'4'},{key:'token_2',text:'5'},{key:'token_3',text:'6'}],ans:{slot_1:'token_2'},diff:'hard',exp:'5 + 5 = 10',pts:10,sort:54},
+      {ex:6,type:'puzzle',text:'Số bí ẩn: nhỏ hơn 10, lớn hơn 8, và là số chẵn',opts:[{key:'slot_1',text:'Số = [?]'},{key:'token_1',text:'7'},{key:'token_2',text:'9'},{key:'token_3',text:'không có'}],ans:{slot_1:'token_3'},diff:'hard',exp:'9 là số lẻ, không có số chẵn nào giữa 8 và 10',pts:10,sort:55},
+      {ex:6,type:'puzzle',text:'Ba số liên tiếp có tổng = 9. Số nhỏ nhất là?',opts:[{key:'slot_1',text:'Số nhỏ nhất = [?]'},{key:'token_1',text:'1'},{key:'token_2',text:'2'},{key:'token_3',text:'3'}],ans:{slot_1:'token_2'},diff:'hard',exp:'2+3+4=9',pts:10,sort:56},
+      {ex:6,type:'multiple_choice',text:'Chọn tất cả số x thỏa mãn: 3 < x < 8 và x là số lẻ',opts:[{key:'A',text:'4'},{key:'B',text:'5'},{key:'C',text:'7'},{key:'D',text:'6'}],ans:['B','C'],diff:'hard',exp:'5 và 7 là số lẻ trong khoảng 3-8',pts:10,sort:57},
+      {ex:6,type:'multiple_choice',text:'Phép tính nào cho kết quả là số chẵn?',opts:[{key:'A',text:'3+5'},{key:'B',text:'4+4'},{key:'C',text:'5+5'},{key:'D',text:'3+4'}],ans:['A','B','C'],diff:'hard',exp:'3+5=8, 4+4=8, 5+5=10 đều chẵn; 3+4=7 lẻ',pts:10,sort:58},
+      {ex:6,type:'sorting',text:'Sắp xếp biểu thức theo giá trị tăng dần',opts:[{key:'1',text:'3+2=5'},{key:'2',text:'4+3=7'},{key:'3',text:'5+4=9'},{key:'4',text:'4+6=10'}],ans:['1','2','3','4'],diff:'hard',exp:'5, 7, 9, 10 tăng dần',pts:10,sort:59},
+      {ex:6,type:'sorting',text:'Sắp xếp theo giá trị giảm dần: 10-1, 9-2, 8-3, 7-4',opts:[{key:'1',text:'10-1=9'},{key:'2',text:'9-2=7'},{key:'3',text:'8-3=5'},{key:'4',text:'7-4=3'}],ans:['1','2','3','4'],diff:'hard',exp:'9, 7, 5, 3 giảm dần',pts:10,sort:60},
+      {ex:7,type:'game',text:'Nhóm phép tính theo kết quả: =8 và =9',opts:[{key:'c1',text:'4+4',pair:'=8'},{key:'c2',text:'3+5',pair:'=8'},{key:'c3',text:'6+2',pair:'=8'},{key:'c4',text:'5+4',pair:'=9'},{key:'c5',text:'3+6',pair:'=9'},{key:'c6',text:'7+2',pair:'=9'}],ans:{},diff:'hard',exp:'=8: 4+4, 3+5, 6+2; =9: 5+4, 3+6, 7+2',pts:10,sort:61},
+      {ex:7,type:'game',text:'Nhóm số chẵn và số lẻ trong 1-10',opts:[{key:'c1',text:'2',pair:'chẵn'},{key:'c2',text:'4',pair:'chẵn'},{key:'c3',text:'6',pair:'chẵn'},{key:'c4',text:'1',pair:'lẻ'},{key:'c5',text:'3',pair:'lẻ'},{key:'c6',text:'5',pair:'lẻ'}],ans:{},diff:'hard',exp:'Chẵn: 2,4,6; Lẻ: 1,3,5',pts:10,sort:62},
+      {ex:7,type:'matching',text:'Nối bài toán với phép tính và kết quả',opts:[{key:'A',text:'Có 8 bóng, cho 3'},{key:'B',text:'Có 5 bóng, thêm 4'},{key:'C',text:'Hai nhóm 3 và 6'}],ans:{A:'8-3=5',B:'5+4=9',C:'3+6=9'},diff:'hard',exp:'8-3=5, 5+4=9, 3+6=9',pts:10,sort:63},
+      {ex:7,type:'matching',text:'Nối biểu thức bằng nhau',opts:[{key:'A',text:'3+7'},{key:'B',text:'6+4'},{key:'C',text:'8+2'}],ans:{A:'=10',B:'=10',C:'=10'},diff:'hard',exp:'3+7=6+4=8+2=10',pts:10,sort:64},
+      {ex:7,type:'matching',text:'Nối mô tả số với số đúng',opts:[{key:'A',text:'Số lẻ lớn nhất < 10'},{key:'B',text:'Số chẵn lớn nhất ≤ 10'},{key:'C',text:'Số nhỏ nhất > 0'}],ans:{A:'9',B:'10',C:'1'},diff:'hard',exp:'Số lẻ lớn nhất <10 là 9; số chẵn lớn nhất ≤10 là 10; số nhỏ nhất >0 là 1',pts:10,sort:65},
+      {ex:7,type:'fill_blank',text:'5 + 3 = [b1] + 4 (tìm [b1])',opts:[{key:'b1',text:'?'}],ans:{b1:'4'},diff:'hard',exp:'5+3=8, 4+4=8, [b1]=4',pts:10,sort:66},
+      {ex:7,type:'fill_blank',text:'10 - [b1] = 3 + 2',opts:[{key:'b1',text:'?'}],ans:{b1:'5'},diff:'hard',exp:'10 - 5 = 5 = 3 + 2',pts:10,sort:67},
+      {ex:7,type:'fill_blank',text:'Tổng 3 số liên tiếp bắt đầu từ [b1] bằng 12',opts:[{key:'b1',text:'?'}],ans:{b1:'3'},diff:'hard',exp:'3 + 4 + 5 = 12',pts:10,sort:68},
+      {ex:7,type:'drag_drop',text:'Kéo số vào: _+_=10 (cặp số bổ sung)',opts:[{key:'A',text:'3 và 7'},{key:'B',text:'4 và 6'},{key:'C',text:'5 và 5'}],ans:['A','B','C'],diff:'hard',exp:'3+7=4+6=5+5=10',pts:10,sort:69},
+      {ex:7,type:'drag_drop',text:'Kéo vào: kết quả của 9-4+5 là _',opts:[{key:'A',text:'8'},{key:'B',text:'10'},{key:'C',text:'12'}],ans:['B'],diff:'hard',exp:'9-4=5, 5+5=10',pts:10,sort:70},
+      {ex:8,type:'multiple_choice',text:'Chọn tất cả biểu thức bằng 7',opts:[{key:'A',text:'3+4'},{key:'B',text:'10-3'},{key:'C',text:'5+2'},{key:'D',text:'9-3'}],ans:['A','B','C'],diff:'hard',exp:'3+4=7, 10-3=7, 5+2=7; 9-3=6≠7',pts:10,sort:71},
+      {ex:8,type:'multiple_choice',text:'Chọn phép tính có kết quả là số chẵn lớn hơn 7',opts:[{key:'A',text:'4+4'},{key:'B',text:'5+5'},{key:'C',text:'4+5'},{key:'D',text:'3+6'}],ans:['A','B'],diff:'hard',exp:'4+4=8 và 5+5=10 là số chẵn >7',pts:10,sort:72},
+      {ex:8,type:'multiple_choice',text:'Số nào thỏa mãn: số đó + 3 > 8?',opts:[{key:'A',text:'5'},{key:'B',text:'6'},{key:'C',text:'7'},{key:'D',text:'4'}],ans:['B','C'],diff:'hard',exp:'6+3=9>8, 7+3=10>8; 5+3=8 không >8',pts:10,sort:73},
+      {ex:8,type:'puzzle',text:'Tìm số x: (x+3) - 2 = 8',opts:[{key:'slot_1',text:'x = [?]'},{key:'token_1',text:'5'},{key:'token_2',text:'7'},{key:'token_3',text:'9'}],ans:{slot_1:'token_2'},diff:'hard',exp:'x+1=8, x=7; kiểm tra: (7+3)-2=10-2=8',pts:10,sort:74},
+      {ex:8,type:'puzzle',text:'Ba học sinh có tổng 15 điểm. An có 5, Bình có 6. Lan có mấy?',opts:[{key:'slot_1',text:'Lan có [?] điểm'},{key:'token_1',text:'3'},{key:'token_2',text:'4'},{key:'token_3',text:'5'}],ans:{slot_1:'token_2'},diff:'hard',exp:'15 - 5 - 6 = 4',pts:10,sort:75},
+      {ex:8,type:'puzzle',text:'Điền số: 3+?=5+? (hai dấu ? là số giống nhau)',opts:[{key:'slot_1',text:'Số ? = [?]'},{key:'token_1',text:'Không có'},{key:'token_2',text:'1'},{key:'token_3',text:'2'}],ans:{slot_1:'token_1'},diff:'hard',exp:'3+x=5+x là vô nghĩa (3≠5)',pts:10,sort:76},
+      {ex:8,type:'sorting',text:'Sắp xếp biểu thức theo kết quả giảm dần',opts:[{key:'1',text:'5+5=10'},{key:'2',text:'4+4=8'},{key:'3',text:'3+3=6'},{key:'4',text:'2+2=4'}],ans:['1','2','3','4'],diff:'hard',exp:'10, 8, 6, 4 giảm dần',pts:10,sort:77},
+      {ex:8,type:'sorting',text:'Sắp xếp theo giá trị: 10-8, 7-3, 9-4, 6-0',opts:[{key:'1',text:'10-8=2'},{key:'2',text:'7-3=4'},{key:'3',text:'9-4=5'},{key:'4',text:'6-0=6'}],ans:['1','2','3','4'],diff:'hard',exp:'2, 4, 5, 6 tăng dần',pts:10,sort:78},
+      {ex:8,type:'cross_out',text:'Gạch bỏ phép tính SAI: 6+4=10, 7+3=10, 8+2=11',opts:[{key:'A',text:'6+4=10'},{key:'B',text:'7+3=10'},{key:'C',text:'8+2=11'}],ans:['C'],diff:'hard',exp:'8+2=10, không phải 11',pts:10,sort:79},
+      {ex:8,type:'cross_out',text:'Gạch bỏ số không phải số lẻ trong 1-10: 1, 4, 5, 7, 10',opts:[{key:'A',text:'1'},{key:'B',text:'4'},{key:'C',text:'5'},{key:'D',text:'7'},{key:'E',text:'10'}],ans:['B','E'],diff:'hard',exp:'4 và 10 là số chẵn',pts:10,sort:80},
+    ]
+  }
+};
+
+async function seed() {
+  const conn = await mysql.createConnection(dbConfig);
+  try {
+    for (const lessonId of lessonIds) {
+      const { topic, questions } = data[lessonId];
+      console.log(`Processing lesson ${lessonId}: ${topic}`);
+      await conn.execute('DELETE FROM quizzes WHERE lessonId = ?', [lessonId]);
+      for (const q of questions) {
+        const optionsJson = q.opts ? JSON.stringify(q.opts) : null;
+        const correctAnswerJson = JSON.stringify(q.ans);
+        await conn.execute(
+          'INSERT INTO quizzes (lessonId,exerciseNumber,questionType,questionText,optionsJson,correctAnswerJson,difficultyLevel,explanation,points,sortOrder,isActive,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,1,NOW(),NOW())',
+          [lessonId, q.ex, q.type, q.text, optionsJson, correctAnswerJson, q.diff, q.exp || null, q.pts, q.sort]
+        );
+      }
+      console.log(`  ✓ Inserted ${questions.length} questions`);
+    }
+    console.log('Done!');
+  } finally {
+    await conn.end();
+  }
+}
+
+seed().catch(console.error);
