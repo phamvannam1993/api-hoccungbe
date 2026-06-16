@@ -5,7 +5,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
-import { TtsService } from './tts.service';
+import { TtsService, TtsResponse } from './tts.service';
 import { CreateTtsDto } from './dto/create-tts.dto';
 
 @ApiTags('Text-to-Speech')
@@ -39,7 +39,7 @@ export class TtsController {
     status: 500,
     description: 'Internal server error',
   })
-  async synthesize(@Body() dto: CreateTtsDto) {
+  async synthesize(@Body() dto: CreateTtsDto): Promise<TtsResponse> {
     return this.ttsService.synthesize(dto);
   }
 }

@@ -3,7 +3,7 @@ import * as https from 'https';
 import { ConfigService } from '@nestjs/config';
 import { CreateTtsDto } from './dto/create-tts.dto';
 
-interface TtsResponse {
+export interface TtsResponse {
   status: string;
   audio_url: string;
   filename: string;
@@ -88,6 +88,11 @@ export class TtsService {
                 ),
               );
               return;
+            }
+
+            // Convert relative audio_url to absolute URL
+            if (response.audio_url && response.audio_url.startsWith('/')) {
+              response.audio_url = 'https://api-v2.behayhoc.com' + response.audio_url;
             }
 
             resolve(response);
