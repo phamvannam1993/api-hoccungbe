@@ -37,7 +37,8 @@ export class TtsService {
 
   private async makeRequest(dto: CreateTtsDto): Promise<TtsResponse> {
     return new Promise((resolve, reject) => {
-      const apiUrl = 'https://api-v2.behayhoc.com/tts';
+      const apiUrl = this.configService.get<string>('TTS_API_URL') || 'https://api-v2.behayhoc.com/tts';
+      const baseUrl = this.configService.get<string>('TTS_BASE_URL') || 'https://api-v2.behayhoc.com';
       const payload = {
         text: dto.text,
         voice: dto.voice || 'vi-VN-HoaiMyNeural',
@@ -92,7 +93,7 @@ export class TtsService {
 
             // Convert relative audio_url to absolute URL
             if (response.audio_url && response.audio_url.startsWith('/')) {
-              response.audio_url = 'https://api-v2.behayhoc.com' + response.audio_url;
+              response.audio_url = baseUrl + response.audio_url;
             }
 
             resolve(response);
