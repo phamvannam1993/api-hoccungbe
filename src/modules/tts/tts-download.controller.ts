@@ -10,7 +10,7 @@ import {
 import type { Response } from 'express';
 import * as https from 'https';
 
-@Controller('api/tts')
+@Controller('tts')
 export class TtsDownloadController {
   private readonly logger = new Logger(TtsDownloadController.name);
   private readonly externalApiBaseUrl = process.env.TTS_BASE_URL || 'https://api-v2.behayhoc.com';
