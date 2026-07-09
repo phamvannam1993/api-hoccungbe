@@ -37,7 +37,9 @@ import { TtsModule } from './modules/tts/tts.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: true,
+        // synchronize chỉ bật khi DB_SYNCHRONIZE=true (dev). Mặc định false để tránh
+        // TypeORM tự ALTER schema/thêm FK trên DB production đã có dữ liệu (gãy khi có hàng mồ côi).
+        synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
         // Bổ sung cấu hình extra cho mysql2
         extra: {
           // Nếu cần thêm các tùy chọn cho mysql2, bạn có thể thêm vào đây

@@ -34,7 +34,7 @@ export class TtsService {
       return cached;
     }
 
-    let lastError: Error;
+    let lastError: Error | undefined;
     for (let attempt = 0; attempt <= this.RETRY_ATTEMPTS; attempt++) {
       try {
         const result = await this.makeRequest(dto);
@@ -56,7 +56,7 @@ export class TtsService {
       }
     }
 
-    throw lastError;
+    throw lastError ?? new Error('[TTS] Synthesis failed after all retry attempts');
   }
 
   private isRetryableError(error: any): boolean {
