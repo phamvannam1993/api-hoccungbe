@@ -10,6 +10,7 @@ import { CreateGameQuestionDto } from './dto/create-game-question.dto';
 import { UpdateGameQuestionDto } from './dto/update-game-question.dto';
 import { CreateGameItemDto } from './dto/create-game-item.dto';
 import { UpdateGameItemDto } from './dto/update-game-item.dto';
+import { GAME_TYPE_CATALOG } from './game-types.catalog';
 
 @Injectable()
 export class GamesService {
@@ -25,6 +26,11 @@ export class GamesService {
   createGame(dto: CreateGameDto) {
     const entity = this.gamesRepository.create(dto);
     return this.gamesRepository.save(entity);
+  }
+
+  /** Danh mục mô tả chi tiết các loại trò chơi (cách chơi, kỹ năng, cơ sở giáo dục). */
+  getGameTypeCatalog() {
+    return { total: GAME_TYPE_CATALOG.length, items: GAME_TYPE_CATALOG };
   }
 
   findAllGames(lessonId?: number) {
