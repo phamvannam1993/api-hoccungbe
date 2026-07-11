@@ -57,6 +57,17 @@ export class GamesController {
     return this.gamesService.findAllGames(lessonId);
   }
 
+  @Get('types')
+  @ApiOperation({
+    summary: 'Danh mục các loại trò chơi (mô tả, kỹ năng phát triển, cơ sở giáo dục)',
+    description:
+      'Trả về mô tả chi tiết cho từng loại trò chơi để hiển thị cho phụ huynh: cách chơi, kỹ năng trẻ phát triển, cơ sở giáo dục/khoa học và độ tuổi phù hợp.',
+  })
+  @ApiResponse({ status: 200, description: 'Lấy danh mục loại trò chơi thành công' })
+  getGameTypes() {
+    return this.gamesService.getGameTypeCatalog();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết game kèm câu hỏi và items' })
   @ApiParam({ name: 'id', example: 1, description: 'ID game' })

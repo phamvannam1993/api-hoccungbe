@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import * as https from 'https';
 import { ConfigService } from '@nestjs/config';
 import { CreateTtsDto } from './dto/create-tts.dto';
@@ -16,10 +16,13 @@ interface CacheEntry {
 
 @Injectable()
 export class TtsService {
+  private readonly logger = new Logger(TtsService.name);
   private readonly cache = new Map<string, CacheEntry>();
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
   private readonly MAX_CACHE_SIZE = 500;
   private readonly REQUEST_TIMEOUT = 30000; // 30 seconds
+  private readonly RETRY_ATTEMPTS = 2;
+  private readonly RETRY_DELAY = 1000; // 1 second
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -27,12 +30,49 @@ export class TtsService {
     const cacheKey = this.generateCacheKey(dto);
     const cached = this.getFromCache(cacheKey);
     if (cached) {
+      this.logger.debug(`[TTS] Cache hit for: ${cacheKey}`);
       return cached;
     }
 
-    const result = await this.makeRequest(dto);
-    this.setCache(cacheKey, result);
-    return result;
+    let lastError: Error | undefined;
+    for (let attempt = 0; attempt <= this.RETRY_ATTEMPTS; attempt++) {
+      try {
+        const result = await this.makeRequest(dto);
+        this.setCache(cacheKey, result);
+        this.logger.log(`[TTS] Successfully synthesized: ${dto.text.substring(0, 50)}...`);
+        return result;
+      } catch (error) {
+        lastError = error;
+        const isRetryable = this.isRetryableError(error);
+        this.logger.warn(
+          `[TTS] Attempt ${attempt + 1}/${this.RETRY_ATTEMPTS + 1} failed: ${error.message}. Retryable: ${isRetryable}`,
+        );
+
+        if (isRetryable && attempt < this.RETRY_ATTEMPTS) {
+          await this.delay(this.RETRY_DELAY * Math.pow(2, attempt)); // Exponential backoff
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError ?? new Error('[TTS] Synthesis failed after all retry attempts');
+  }
+
+  private isRetryableError(error: any): boolean {
+    const message = error.message || '';
+    // Retry on timeout or connection errors
+    return (
+      message.includes('timeout') ||
+      message.includes('ECONNREFUSED') ||
+      message.includes('ECONNRESET') ||
+      message.includes('ETIMEDOUT') ||
+      message.includes('EHOSTUNREACH')
+    );
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async makeRequest(dto: CreateTtsDto): Promise<TtsResponse> {
@@ -108,20 +148,25 @@ export class TtsService {
       });
 
       req.on('error', (error) => {
-        reject(
-          new InternalServerErrorException(
-            `TTS API request failed: ${error.message}`,
-          ),
-        );
+        const errorMsg = `TTS API request failed: ${error.message}`;
+        this.logger.error(`[TTS] ${errorMsg}`);
+        reject(new InternalServerErrorException(errorMsg));
       });
 
       req.setTimeout(this.REQUEST_TIMEOUT, () => {
         req.destroy();
-        reject(
-          new InternalServerErrorException(
-            'TTS API request timeout (30s)',
-          ),
-        );
+        const timeoutMsg = `TTS API request timeout (${this.REQUEST_TIMEOUT / 1000}s) - External service may be slow or unavailable`;
+        this.logger.error(`[TTS] ${timeoutMsg}`);
+        reject(new InternalServerErrorException(timeoutMsg));
+      });
+
+      req.on('socket', (socket) => {
+        socket.on('timeout', () => {
+          req.destroy();
+          const socketTimeoutMsg = 'TTS API socket timeout - Connection lost';
+          this.logger.error(`[TTS] ${socketTimeoutMsg}`);
+          reject(new InternalServerErrorException(socketTimeoutMsg));
+        });
       });
 
       req.write(postData);
