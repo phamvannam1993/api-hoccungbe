@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChildrenService } from './children.service';
@@ -41,8 +42,8 @@ export class ChildrenController {
     description: 'Lấy danh sách hồ sơ bé thành công',
     type: [ChildProfile],
   })
-  findAll() {
-    return this.childrenService.findAll();
+  findAll(@Query('userId', new ParseIntPipe({ optional: true })) userId?: number) {
+    return this.childrenService.findAll(userId);
   }
 
   @Get(':id')
