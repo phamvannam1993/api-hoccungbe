@@ -10,6 +10,7 @@ export enum CourseType {
   LOGIC = 'logic',
   MATH = 'math',
   LANGUAGE = 'language',
+  ENGLISH = 'english',
   EMOTION = 'emotion',
   CREATIVE = 'creative',
   OTHER = 'other',
