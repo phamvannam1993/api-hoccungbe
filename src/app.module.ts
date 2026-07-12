@@ -23,6 +23,15 @@ import { MiniGamesModule } from './modules/mini-games/mini-games.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { TtsModule } from './modules/tts/tts.module';
+import { AttemptsModule } from './modules/attempts/attempts.module';
+import { StreaksModule } from './modules/streaks/streaks.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
+import { GamificationModule } from './modules/gamification/gamification.module';
+import { SkillsModule } from './modules/skills/skills.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { BatchModule } from './modules/batch/batch.module';
 
 @Module({
   imports: [
@@ -64,6 +73,15 @@ import { TtsModule } from './modules/tts/tts.module';
     GamesModule,
     PlayModule,
     VolumesModule,
+    AttemptsModule,
+    StreaksModule,
+    RecommendationsModule,
+    NotificationsModule,
+    CertificatesModule,
+    GamificationModule,
+    SkillsModule,
+    ReportsModule,
+    BatchModule,
     TopicsModule,
     ExamsModule,
     ArticlesModule,

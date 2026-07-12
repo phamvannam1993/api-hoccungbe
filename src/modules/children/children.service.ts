@@ -17,8 +17,9 @@ export class ChildrenService {
     return this.childrenRepository.save(entity);
   }
 
-  findAll() {
+  findAll(userId?: number) {
     return this.childrenRepository.find({
+      where: userId ? { userId } : {},
       relations: ['user', 'progressRecords', 'rewards'],
     });
   }

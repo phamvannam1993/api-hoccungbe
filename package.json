@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "db:migrate:full": "ts-node -r tsconfig-paths/register src/database/run-migration.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
     "seed:lessons": "ts-node -r tsconfig-paths/register src/database/seed-lessons.ts",
     "seed:details": "ts-node -r tsconfig-paths/register src/database/seed-lesson-details.ts",
@@ -15,6 +16,7 @@
     "seed:toan-lop2": "ts-node -r tsconfig-paths/register src/database/seed-toan-lop2.ts",
     "seed:toan-lop2:quizzes": "ts-node -r tsconfig-paths/register src/database/seed-toan-lop2-full.ts",
     "seed:toan-lop3": "ts-node -r tsconfig-paths/register src/database/seed-toan-lop3.ts",
+    "seed:tieng-viet-lop3": "ts-node -r tsconfig-paths/register src/database/seed-tieng-viet-lop3.ts",
     "seed:toan-lop3:quizzes": "ts-node -r tsconfig-paths/register src/database/seed-toan-lop3-full.ts",
     "seed:exam-toan-lop1": "ts-node -r tsconfig-paths/register src/database/seed-exam-toan-lop1.ts",
     "seed:exam-toan-lop1:mau": "ts-node -r tsconfig-paths/register src/database/seed-exam-toan-lop1-mau.ts",
