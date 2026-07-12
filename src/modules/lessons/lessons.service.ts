@@ -20,7 +20,15 @@ export class LessonsService {
     return this.lessonsRepository.save(entity);
   }
 
-  findAll(courseId?: number) {
+  findAll(courseId?: number, slim = false) {
+    // slim = chỉ trường cần cho sitemap (không kèm quizzes/content nặng ~13MB).
+    if (slim) {
+      return this.lessonsRepository.find({
+        where: courseId ? { courseId } : undefined,
+        select: { id: true, slug: true, isPublished: true, updatedAt: true, createdAt: true },
+        order: { sortOrder: 'ASC' },
+      });
+    }
     return this.lessonsRepository.find({
       where: courseId ? { courseId } : undefined,
       relations: ['course', 'quizzes'],

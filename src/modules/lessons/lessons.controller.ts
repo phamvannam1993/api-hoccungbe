@@ -42,8 +42,8 @@ export class LessonsController {
     description: 'Lấy danh sách bài học thành công',
     type: [Lesson],
   })
-  findAll(@Query('courseId') courseId?: string) {
-    return this.lessonsService.findAll(courseId ? Number(courseId) : undefined);
+  findAll(@Query('courseId') courseId?: string, @Query('slim') slim?: string) {
+    return this.lessonsService.findAll(courseId ? Number(courseId) : undefined, slim === '1' || slim === 'true');
   }
 
   @Get('slug/:slug')
