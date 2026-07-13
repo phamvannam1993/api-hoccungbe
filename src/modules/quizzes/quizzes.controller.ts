@@ -139,6 +139,7 @@ export class QuizzesController {
   @ApiQuery({ name: 'courseId', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'questionType', required: false, type: String })
+  @ApiQuery({ name: 'exerciseNumber', required: false, type: Number })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Lấy danh sách câu hỏi quiz thành công', type: [Quiz] })
@@ -147,6 +148,7 @@ export class QuizzesController {
     @Query('courseId') courseId?: string,
     @Query('search') search?: string,
     @Query('questionType') questionType?: string,
+    @Query('exerciseNumber') exerciseNumber?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -157,6 +159,7 @@ export class QuizzesController {
       page ? +page : 1,
       limit ? +limit : 20,
       questionType || undefined,
+      exerciseNumber ? +exerciseNumber : undefined,
     );
   }
 
