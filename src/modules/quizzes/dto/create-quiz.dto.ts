@@ -116,6 +116,9 @@ export class CreateQuizDto {
   })
   @IsOptional()
   @IsArray()
+  // @Type(() => Object): giữ nguyên từng phần tử là object.
+  // Không có nó, enableImplicitConversion (main.ts) sẽ ép object → [] (kiểu reflect là Array).
+  @Type(() => Object)
   @IsObject({ each: true })
   optionsJson?: Record<string, unknown>[];
 
