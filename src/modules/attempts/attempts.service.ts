@@ -185,11 +185,26 @@ export class AttemptsService {
 
   /** Lịch sử làm bài gần đây của bé. */
   async getHistory(childId: number, limit = 20) {
-    return this.attempts.find({
+    // Kèm môn học (courseType) + tên/slug bài để FE dựng bảng theo dõi & liên kết.
+    const rows = await this.attempts.find({
       where: { childId },
       order: { createdAt: 'DESC' },
       take: limit,
+      relations: { lesson: { course: true } },
     });
+    return rows.map((a) => ({
+      id: a.id,
+      lessonId: a.lessonId,
+      lessonTitle: a.lesson?.title ?? null,
+      lessonSlug: a.lesson?.slug ?? null,
+      courseType: a.lesson?.course?.courseType ?? null,
+      exerciseNumber: a.exerciseNumber,
+      difficultyLevel: a.difficultyLevel,
+      score: a.score,
+      correctCount: a.correctCount,
+      totalQuestions: a.totalQuestions,
+      createdAt: a.createdAt,
+    }));
   }
 
   /** Trạng thái làm bài của bé theo từng bài tập trong 1 bài học (cho danh sách bài tập). */
