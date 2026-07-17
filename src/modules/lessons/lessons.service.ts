@@ -23,9 +23,14 @@ export class LessonsService {
   findAll(courseId?: number, slim = false) {
     // slim = chỉ trường cần cho sitemap (không kèm quizzes/content nặng ~13MB).
     if (slim) {
+      // + title/sortOrder/topicId để dựng điều hướng prev/next & bài cùng chủ đề (internal linking).
+      // Sitemap chỉ đọc slug/date nên thêm field không ảnh hưởng.
       return this.lessonsRepository.find({
         where: courseId ? { courseId } : undefined,
-        select: { id: true, slug: true, isPublished: true, updatedAt: true, createdAt: true },
+        select: {
+          id: true, slug: true, title: true, sortOrder: true, topicId: true,
+          isPublished: true, updatedAt: true, createdAt: true,
+        },
         order: { sortOrder: 'ASC' },
       });
     }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -55,6 +56,24 @@ export class MediaController {
       size: file.size,
     });
     return media;
+  }
+
+  // Tạo media từ link ảnh có sẵn (không upload file)
+  @Post()
+  async createFromUrl(
+    @Body() body: { url?: string; originalName?: string; folder?: string; mimeType?: string },
+  ) {
+    const url = (body.url || '').trim();
+    if (!url || !/^https?:\/\//i.test(url)) {
+      throw new BadRequestException('Link ảnh không hợp lệ (phải bắt đầu bằng http:// hoặc https://)');
+    }
+    const nameFromUrl = decodeURIComponent(url.split('/').pop()?.split('?')[0] || 'image');
+    return this.mediaService.create({
+      url,
+      originalName: (body.originalName || '').trim() || nameFromUrl,
+      folder: (body.folder || '').trim() || 'media/links',
+      mimeType: body.mimeType || 'image/*',
+    });
   }
 
   @Delete(':id')
