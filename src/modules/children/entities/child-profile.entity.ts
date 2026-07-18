@@ -39,6 +39,14 @@ export class ChildProfile extends BaseEntityCommon {
   @Column({ type: 'json', nullable: true })
   interests?: string[];
 
+  /** Kết quả khảo sát đầu vào: mức đề xuất, % tổng, điểm mạnh/yếu theo kỹ năng. */
+  @Column({ type: 'json', nullable: true })
+  placementJson?: unknown;
+
+  /** Thiết lập cá nhân hóa: bộ sách, môn ưu tiên, bài đang học, mục tiêu/ngày, mức độ, kỹ năng yếu. */
+  @Column({ type: 'json', nullable: true })
+  prefsJson?: unknown;
+
   @Column({ type: 'text', nullable: true })
   learningGoal?: string;
 

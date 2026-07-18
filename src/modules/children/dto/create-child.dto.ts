@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -100,4 +101,11 @@ export class CreateChildDto {
   @IsOptional()
   @IsString()
   learningGoal?: string;
+
+  @ApiPropertyOptional({
+    description: 'Thiết lập cá nhân hóa (bộ sách, môn ưu tiên, bài đang học, mục tiêu/ngày, mức độ, kỹ năng yếu)',
+  })
+  @IsOptional()
+  @IsObject()
+  prefsJson?: Record<string, unknown>;
 }
