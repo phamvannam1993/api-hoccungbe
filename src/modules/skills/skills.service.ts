@@ -80,6 +80,17 @@ export class SkillsService {
   }
 
   /**
+   * Mức thành thạo theo TỪNG KỸ NĂNG (child_skill_mastery) — cho radar & khảo sát đầu vào.
+   */
+  async masteryList(childId: number) {
+    return this.mastery.find({
+      where: { childId },
+      relations: { skill: true },
+      order: { masteryPercent: 'ASC' },
+    });
+  }
+
+  /**
    * Mức thành thạo theo MÔN (courseType) — tính từ các bài bé đã làm thật.
    * Chỉ hiện môn bé đã học; % = tổng câu đúng / tổng câu của các bài thuộc môn đó.
    */

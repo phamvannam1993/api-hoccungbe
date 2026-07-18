@@ -22,6 +22,18 @@ export class DailyRecommendation extends BaseEntityCommon {
   @Column({ length: 255, nullable: true })
   reason?: string;
 
+  /** Loại nhiệm vụ theo công thức 40/30/20/10 (ôn câu sai / bài đang học / ôn cũ / thử thách). */
+  @Column({
+    type: 'enum',
+    enum: ['review_wrong', 'current', 'review_old', 'challenge'],
+    default: 'current',
+  })
+  kind: 'review_wrong' | 'current' | 'review_old' | 'challenge';
+
+  /** Số câu sai cần ôn (chỉ dùng cho kind = review_wrong). */
+  @Column({ type: 'smallint', unsigned: true, nullable: true })
+  wrongCount?: number;
+
   @Column({ type: 'enum', enum: ['pending', 'done', 'skipped'], default: 'pending' })
   status: 'pending' | 'done' | 'skipped';
 
