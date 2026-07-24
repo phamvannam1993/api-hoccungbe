@@ -10,12 +10,40 @@ export class S3UploadService {
   private readonly region: string;
   private readonly accessKeyId: string;
   private readonly secretAccessKey: string;
+  /** Tiền tố thư mục bắt buộc (khi IAM key chỉ được ghi trong 1 prefix). Rỗng = ghi thẳng gốc bucket. */
+  private readonly prefix: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.bucket = this.configService.get<string>('AWS_S3_BUCKET', '');
-    this.region = this.configService.get<string>('AWS_REGION', 'ap-southeast-1');
-    this.accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID', '');
-    this.secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY', '');
+    // Chấp nhận cả 2 quy ước tên biến: AWS_S3_* (đang dùng trong .env) và AWS_* (chuẩn AWS SDK).
+    const env = (...keys: string[]): string => {
+      for (const k of keys) {
+        const v = this.configService.get<string>(k);
+        if (v && v.trim()) return v.trim();
+      }
+      return '';
+    };
+
+    this.bucket = env('AWS_S3_BUCKET', 'AWS_BUCKET');
+    this.region = env('AWS_S3_REGION', 'AWS_REGION') || 'ap-southeast-1';
+    this.accessKeyId = env('AWS_S3_ACCESS_KEY_ID', 'AWS_ACCESS_KEY_ID');
+    this.secretAccessKey = env('AWS_S3_SECRET_ACCESS_KEY', 'AWS_SECRET_ACCESS_KEY');
+    this.prefix = env('AWS_S3_PREFIX', 'AWS_S3_FOLDER').replace(/^\/+|\/+$/g, '');
+
+    if (!this.bucket || !this.accessKeyId || !this.secretAccessKey) {
+      // Báo sớm & rõ ràng thay vì để AWS trả lỗi "AuthorizationHeaderMalformed" khó hiểu.
+      const missing = [
+        !this.bucket && 'AWS_S3_BUCKET',
+        !this.accessKeyId && 'AWS_S3_ACCESS_KEY_ID',
+        !this.secretAccessKey && 'AWS_S3_SECRET_ACCESS_KEY',
+      ].filter(Boolean);
+      console.warn(`[S3UploadService] Thiếu cấu hình S3: ${missing.join(', ')} — upload sẽ thất bại.`);
+    }
+  }
+
+  /** Ghép key S3, tự thêm prefix bắt buộc (nếu có) để không đụng giới hạn IAM. */
+  private buildKey(folder: string, ext: string): string {
+    const base = `${folder.replace(/^\/+|\/+$/g, '')}/${crypto.randomUUID()}${ext}`;
+    return this.prefix ? `${this.prefix}/${base}` : base;
   }
 
   async uploadAudio(
@@ -23,7 +51,7 @@ export class S3UploadService {
     folder = 'quizzes/audio',
   ): Promise<string> {
     const ext = path.extname(file.originalname) || '.mp3';
-    const key = `${folder}/${crypto.randomUUID()}${ext}`;
+    const key = this.buildKey(folder, ext);
     const contentType = file.mimetype || 'audio/mpeg';
     await this.putObject(key, file.buffer, contentType);
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
@@ -34,7 +62,7 @@ export class S3UploadService {
     folder = 'quizzes/images',
   ): Promise<string> {
     const ext = path.extname(file.originalname) || '.jpg';
-    const key = `${folder}/${crypto.randomUUID()}${ext}`;
+    const key = this.buildKey(folder, ext);
     const contentType = file.mimetype || 'image/jpeg';
     await this.putObject(key, file.buffer, contentType);
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;

@@ -1,7 +1,11 @@
 import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import * as https from 'https';
+import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateTtsDto } from './dto/create-tts.dto';
+import { TtsCache } from './entities/tts-cache.entity';
 
 export interface TtsResponse {
   status: string;
@@ -24,7 +28,49 @@ export class TtsService {
   private readonly RETRY_ATTEMPTS = 2;
   private readonly RETRY_DELAY = 1000; // 1 second
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(TtsCache)
+    private readonly ttsCacheRepo: Repository<TtsCache>,
+  ) {}
+
+  /** Chuẩn hóa text GIỐNG batch & read path (bỏ emoji, gộp khoảng trắng) để cacheKey khớp. */
+  private normalizeText(text: string): string {
+    return (text || '')
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+      .replace(/[\u{2600}-\u{27BF}]/gu, '')
+      .replace(/[\u{2B50}]/gu, '')
+      .replace(/[\u{1F000}-\u{1F02F}]/gu, '')
+      .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private buildCacheKey(text: string, voice: string, rate: string, pitch: string): string {
+    return crypto.createHash('sha256').update(`${voice}|${rate}|${pitch}|${text}`).digest('hex');
+  }
+
+  /**
+   * Tra bảng tts_cache: nếu đã có audio cho đoạn text (cùng voice) → trả URL S3 để DÙNG LẠI,
+   * tránh gọi API TTS lại. Trả null nếu chưa có (caller sẽ dùng luồng cũ).
+   */
+  async lookupCached(
+    rawText: string,
+    voice = 'vi',
+    rate = '+0%',
+    pitch = '+0Hz',
+  ): Promise<{ audioUrl: string; durationMs: number | null; mimeType: string } | null> {
+    const text = this.normalizeText(rawText);
+    if (!text) return null;
+    const cacheKey = this.buildCacheKey(text, voice, rate, pitch);
+    const row = await this.ttsCacheRepo.findOne({ where: { cacheKey } });
+    if (!row) return null;
+    // Đếm lượt dùng lại (fire-and-forget, không chặn response).
+    this.ttsCacheRepo
+      .update(row.id, { hitCount: () => 'hitCount + 1', lastUsedAt: new Date() } as any)
+      .catch(() => undefined);
+    return { audioUrl: row.audioUrl, durationMs: row.durationMs ?? null, mimeType: row.mimeType };
+  }
 
   async synthesize(dto: CreateTtsDto): Promise<TtsResponse> {
     const cacheKey = this.generateCacheKey(dto);
