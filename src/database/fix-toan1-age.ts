@@ -1,0 +1,10 @@
+import 'reflect-metadata'; import { DataSource } from 'typeorm'; import * as dotenv from 'dotenv'; import * as path from 'path';
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+const ds = new DataSource({ type:'mysql', host:process.env.DB_HOST, port:Number(process.env.DB_PORT), username:process.env.DB_USERNAME, password:process.env.DB_PASSWORD, database:process.env.DB_NAME, entities:[], synchronize:false });
+(async()=>{ await ds.initialize();
+  const r:any=await ds.query("UPDATE courses SET targetAgeMin=6, targetAgeMax=7 WHERE slug='toan-lop-1' AND (targetAgeMin<>6 OR targetAgeMax<>7)");
+  console.log('Toán lớp 1 age 3-6 → 6-7:', r.affectedRows, 'khóa');
+  const chk:any[]=await ds.query("SELECT title, targetAgeMin, targetAgeMax FROM courses WHERE title LIKE '%lớp 1%' AND isPublished=1");
+  console.log('Các khóa lớp 1 sau sửa:'); chk.forEach((c:any)=>console.log('  ', c.title, '→', c.targetAgeMin+'-'+c.targetAgeMax));
+  await ds.destroy();
+})();
