@@ -46,6 +46,18 @@ export class TtsController {
     return this.ttsService.synthesize(dto);
   }
 
+  @Post('generate')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Sinh sẵn (pre-generate) giọng đọc cho toàn bộ câu hỏi của một khóa học',
+    description:
+      'Truyền slug môn học/khóa học (vd toan-lop-2). Hệ thống chạy NỀN: đọc từng câu hỏi (đã preprocess giống FE) → tải audio → lưu S3 + tts_cache. Trả về ngay số lượng việc.',
+  })
+  @ApiResponse({ status: 200, schema: { example: { course: 'toan-lop-2', totalTexts: 1460, alreadyCached: 0, started: true } } })
+  async generate(@Body() body: { course: string; limit?: number }) {
+    return this.ttsService.generateForCourse(body?.course, body?.limit || 0);
+  }
+
   @Get('cached')
   @ApiOperation({
     summary: 'Tra audio đã cache theo text',
