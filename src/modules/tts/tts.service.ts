@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateTtsDto } from './dto/create-tts.dto';
 import { TtsCache } from './entities/tts-cache.entity';
+import { S3UploadService } from '../../common/services/s3-upload.service';
+import { preprocessTTS, toVietnamesePhonics } from './tts-preprocess';
 
 export interface TtsResponse {
   status: string;
@@ -32,7 +34,118 @@ export class TtsService {
     private readonly configService: ConfigService,
     @InjectRepository(TtsCache)
     private readonly ttsCacheRepo: Repository<TtsCache>,
+    private readonly s3: S3UploadService,
   ) {}
+
+  /** Cờ tránh chạy 2 job sinh audio cho cùng 1 khóa cùng lúc. */
+  private readonly generating = new Set<string>();
+
+  /**
+   * Sinh (pre-generate) audio TTS cho TOÀN BỘ câu hỏi của một MÔN HỌC/KHÓA HỌC (theo slug),
+   * lưu file lên S3 và ghi vào tts_cache. Chạy nền (không chặn request), trả về ngay số việc.
+   */
+  async generateForCourse(course: string, limit = 0): Promise<{
+    course: string; totalTexts: number; alreadyCached: number; started: boolean;
+  }> {
+    const slug = (course || '').trim();
+    if (!slug) throw new BadRequestException('course (slug khóa học) là bắt buộc');
+
+    const rows: { questionText: string }[] = await this.ttsCacheRepo.manager.query(
+      `SELECT DISTINCT q.questionText AS questionText
+         FROM quizzes q
+         JOIN lessons l ON l.id = q.lessonId
+         JOIN courses c ON c.id = l.courseId
+        WHERE c.slug = ? AND q.isActive = 1
+          AND q.questionText IS NOT NULL AND q.questionText <> ''
+        ${limit ? 'LIMIT ' + Number(limit) : ''}`,
+      [slug],
+    );
+
+    // Áp ĐÚNG pipeline như FE: preprocessTTS → toVietnamesePhonics → chuẩn hóa.
+    // (canonicalTts = phần chung với read path, để cacheKey khớp & audio đọc chuẩn "chờ/trờ".)
+    const seen = new Set<string>();
+    const texts: string[] = [];
+    for (const r of rows) {
+      const t = this.canonicalTts(preprocessTTS(r.questionText || ''));
+      if (t && !seen.has(t)) { seen.add(t); texts.push(t); }
+    }
+
+    // Đếm sẵn bao nhiêu đã có cache (để báo cáo nhanh).
+    let alreadyCached = 0;
+    if (texts.length) {
+      const keys = texts.map((t) => this.buildCacheKey(t, 'vi', '+0%', '+0Hz'));
+      const [{ c }] = await this.ttsCacheRepo.manager.query(
+        `SELECT COUNT(*) c FROM tts_cache WHERE cacheKey IN (${keys.map(() => '?').join(',')})`,
+        keys,
+      );
+      alreadyCached = Number(c);
+    }
+
+    if (!this.generating.has(slug)) {
+      this.generating.add(slug);
+      // Fire-and-forget: chạy nền, không chặn HTTP response.
+      this.runGeneration(slug, texts)
+        .catch((e) => this.logger.error(`[TTS gen ${slug}] ${e.message}`))
+        .finally(() => this.generating.delete(slug));
+    }
+
+    return { course: slug, totalTexts: texts.length, alreadyCached, started: true };
+  }
+
+  private async runGeneration(slug: string, texts: string[]): Promise<void> {
+    const CONCURRENCY = Number(this.configService.get('TTS_GEN_CONCURRENCY') || 5);
+    let idx = 0, made = 0, skip = 0, fail = 0;
+    const worker = async () => {
+      while (idx < texts.length) {
+        const text = texts[idx++];
+        const cacheKey = this.buildCacheKey(text, 'vi', '+0%', '+0Hz');
+        try {
+          const exists = await this.ttsCacheRepo.findOne({ where: { cacheKey }, select: ['id'] });
+          if (exists) { skip++; continue; }
+          const { buf, providerUrl, durationMs, filename } = await this.fetchLocalTts(text);
+          const audioUrl = await this.s3.uploadAudio(
+            { buffer: buf, originalname: filename, mimetype: 'audio/mpeg' }, 'tts',
+          );
+          await this.ttsCacheRepo.save(this.ttsCacheRepo.create({
+            cacheKey, text, voice: 'vi', rate: '+0%', pitch: '+0Hz',
+            audioUrl, providerUrl, filename, mimeType: 'audio/mpeg',
+            fileSize: buf.length, durationMs, storage: 's3',
+          }));
+          made++;
+        } catch {
+          fail++;
+        }
+        if ((made + skip + fail) % 50 === 0) {
+          this.logger.log(`[TTS gen ${slug}] ${made + skip + fail}/${texts.length} (mới ${made}, bỏ qua ${skip}, lỗi ${fail})`);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, texts.length) }, worker));
+    this.logger.log(`[TTS gen ${slug}] HOÀN TẤT: mới ${made}, bỏ qua ${skip}, lỗi ${fail}`);
+  }
+
+  private async fetchLocalTts(text: string): Promise<{ buf: Buffer; providerUrl: string; durationMs: number; filename: string }> {
+    const base = this.configService.get<string>('TTS_LOCAL_URL') || 'http://localhost:8000/api/tts';
+    const r = await fetch(`${base}?text=${encodeURIComponent(text)}`);
+    if (!r.ok) throw new Error(`TTS ${r.status}`);
+    const j: any = await r.json();
+    const providerUrl: string = j.url || j.audio_url;
+    if (!providerUrl) throw new Error('TTS thiếu url');
+    const ar = await fetch(providerUrl);
+    if (!ar.ok) throw new Error(`tải mp3 ${ar.status}`);
+    const buf = Buffer.from(await ar.arrayBuffer());
+    return { buf, providerUrl, durationMs: Math.round((j.duration || 0) * 1000), filename: providerUrl.split('/').pop() || 'tts.mp3' };
+  }
+
+  /**
+   * Pipeline CHUẨN dùng chung cho cả sinh cache lẫn tra cache — khớp 100% với FE
+   * (app/api/tts/route.ts: toVietnamesePhonics(removeEmojis(text))). FE gửi text đã
+   * qua preprocessTTS, nên ở đây chỉ cần phonics + chuẩn hóa. toVietnamesePhonics chỉ
+   * đụng chữ cái, normalizeText chỉ đụng emoji/khoảng trắng → thứ tự không đổi kết quả.
+   */
+  private canonicalTts(text: string): string {
+    return toVietnamesePhonics(this.normalizeText(text));
+  }
 
   /** Chuẩn hóa text GIỐNG batch & read path (bỏ emoji, gộp khoảng trắng) để cacheKey khớp. */
   private normalizeText(text: string): string {
@@ -60,7 +173,7 @@ export class TtsService {
     rate = '+0%',
     pitch = '+0Hz',
   ): Promise<{ audioUrl: string; durationMs: number | null; mimeType: string } | null> {
-    const text = this.normalizeText(rawText);
+    const text = this.canonicalTts(rawText);
     if (!text) return null;
     const cacheKey = this.buildCacheKey(text, voice, rate, pitch);
     const row = await this.ttsCacheRepo.findOne({ where: { cacheKey } });
