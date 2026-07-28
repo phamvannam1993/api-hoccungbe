@@ -1,0 +1,14 @@
+require('dotenv').config();
+const mysql=require('mysql2/promise');
+const bucket=process.env.AWS_S3_BUCKET||process.env.AWS_BUCKET;
+const region=process.env.AWS_S3_REGION||process.env.AWS_REGION||'ap-southeast-1';
+const prefix=(process.env.AWS_S3_PREFIX||process.env.AWS_S3_FOLDER||'').replace(/^\/+|\/+$/g,'');
+console.log('bucket:',bucket,'| region:',region,'| prefix:',JSON.stringify(prefix),'| có key:',!!(process.env.AWS_S3_ACCESS_KEY_ID||process.env.AWS_ACCESS_KEY_ID));
+(async()=>{const c=await mysql.createConnection({host:process.env.DB_HOST,port:+(process.env.DB_PORT||3306),user:process.env.DB_USERNAME,password:process.env.DB_PASSWORD,database:process.env.DB_NAME});
+const [[n]]=await c.query("SELECT COUNT(*) c FROM tts_cache");
+console.log('tts_cache rows:',n.c);
+const [cols]=await c.query("SHOW COLUMNS FROM tts_cache");
+console.log('cột:', cols.map(x=>x.Field).join(', '));
+const [s]=await c.query("SELECT audioUrl, s3Key, storageType FROM tts_cache LIMIT 3");
+s.forEach(r=>console.log('  audioUrl:',r.audioUrl,'| s3Key:',r.s3Key,'| storage:',r.storageType));
+await c.end();})().catch(e=>console.log('DB:',e.message));
