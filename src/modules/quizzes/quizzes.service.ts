@@ -17,7 +17,7 @@ export class QuizzesService {
     return this.quizzesRepository.save(entity);
   }
 
-  async findAll(lessonId?: number, courseId?: number, search?: string, page = 1, limit = 20, questionType?: string, exerciseNumber?: number) {
+  async findAll(lessonId?: number, courseId?: number, search?: string, page = 1, limit = 20, questionType?: string, exerciseNumber?: number, isActive?: string) {
     const qb = this.quizzesRepository
       .createQueryBuilder('q')
       .leftJoinAndSelect('q.lesson', 'lesson');
@@ -27,6 +27,8 @@ export class QuizzesService {
     if (search) qb.andWhere('q.questionText LIKE :search', { search: `%${search}%` });
     if (questionType) qb.andWhere('q.questionType = :questionType', { questionType });
     if (exerciseNumber) qb.andWhere('q.exerciseNumber = :exerciseNumber', { exerciseNumber });
+    if (isActive === 'true') qb.andWhere('q.isActive = :isActive', { isActive: 1 });
+    else if (isActive === 'false') qb.andWhere('q.isActive = :isActive', { isActive: 0 });
 
     // Sắp xếp theo bài tập GIẢM DẦN, sau đó theo thứ tự câu trong bài tập.
     qb.orderBy('q.exerciseNumber', 'DESC').addOrderBy('q.sortOrder', 'ASC');

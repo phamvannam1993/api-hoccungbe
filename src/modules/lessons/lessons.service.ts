@@ -24,15 +24,19 @@ export class LessonsService {
     // slim = chỉ trường cần cho sitemap (không kèm quizzes/content nặng ~13MB).
     if (slim) {
       // + title/sortOrder/topicId để dựng điều hướng prev/next & bài cùng chủ đề (internal linking).
-      // Sitemap chỉ đọc slug/date nên thêm field không ảnh hưởng.
-      return this.lessonsRepository.find({
-        where: courseId ? { courseId } : undefined,
-        select: {
-          id: true, slug: true, title: true, sortOrder: true, topicId: true,
-          isPublished: true, updatedAt: true, createdAt: true,
-        },
-        order: { sortOrder: 'ASC' },
-      });
+      // + quizCount (số quiz đang active) để sitemap chỉ đưa phiếu bài tập của bài ĐÃ có quiz.
+      const qb = this.lessonsRepository
+        .createQueryBuilder('lesson')
+        .select([
+          'lesson.id', 'lesson.slug', 'lesson.title', 'lesson.sortOrder',
+          'lesson.topicId', 'lesson.isPublished', 'lesson.updatedAt', 'lesson.createdAt',
+        ])
+        .loadRelationCountAndMap('lesson.quizCount', 'lesson.quizzes', 'q', (sub) =>
+          sub.andWhere('q.isActive = :active', { active: 1 }),
+        )
+        .orderBy('lesson.sortOrder', 'ASC');
+      if (courseId) qb.where('lesson.courseId = :courseId', { courseId });
+      return qb.getMany();
     }
     return this.lessonsRepository.find({
       where: courseId ? { courseId } : undefined,

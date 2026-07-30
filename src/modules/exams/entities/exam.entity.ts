@@ -22,6 +22,17 @@ export class Exam extends BaseEntityCommon {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
+  @Column({ length: 255, nullable: true })
+  metaDescription?: string; // mô tả SEO 120-160 ký tự
+
+  // Cụm đề (giua-hk1 | cuoi-hk1 | giua-hk2 | cuoi-hk2 | luyen-15 | luyen-45) và
+  // thứ tự trong cụm (1-5) — phục vụ URL lồng /{courseSlug}/de-thi-.../de-{n}.
+  @Column({ length: 30, nullable: true })
+  examGroup?: string;
+
+  @Column({ type: 'tinyint', unsigned: true, nullable: true })
+  orderIndex?: number;
+
   @Column({ type: 'smallint', unsigned: true, nullable: true })
   timeLimitMinutes?: number; // null = không giới hạn
 
