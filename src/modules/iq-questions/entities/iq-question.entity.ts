@@ -44,6 +44,11 @@ export class IqQuestion extends BaseEntityCommon {
   @Column({ type: 'text', nullable: true })
   explanationSpeech?: string;
 
+  // Mức độ khó: easy=dễ, medium=trung bình, hard=khó.
+  @Index()
+  @Column({ type: 'enum', enum: ['easy', 'medium', 'hard'], default: 'medium' })
+  difficulty: 'easy' | 'medium' | 'hard';
+
   @Column({ type: 'int', unsigned: true, default: 1 })
   sortOrder: number;
 

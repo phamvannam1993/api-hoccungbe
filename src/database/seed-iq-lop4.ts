@@ -3,7 +3,7 @@
  * Tổng–hiệu, trung bình cộng, nhân/chia, diện tích, dãy cách đều, phân số (hiển thị a/b).
  */
 import 'dotenv/config';
-import { createGen, generate, seedGrade, docSo, capitalize, type Q } from './iq-gen';
+import { createGen, generate, seedGrade, docSo, capitalize, type Q, type Level } from './iq-gen';
 
 const G = createGen(440004);
 const { ri, pick, numOptions, fromPool } = G;
@@ -74,10 +74,33 @@ const FAMILIES: Array<() => Q | null> = [
     const a = ri(2, 9), b = ri(4, 30), x = a * b, o = numOptions(x);
     return { question: `Tìm x, biết: x : ${a} = ${b}`, question_speech: `Tìm x, biết x chia ${docSo(a)} bằng ${docSo(b)}.`, options: o.options, correct_index: o.correct_index, explanation: `Muốn tìm số bị chia, lấy thương nhân số chia: x = ${b} × ${a} = ${x}.`, explanation_speech: `x bằng ${docSo(b)} nhân ${docSo(a)} bằng ${docSo(x)}.` };
   },
+  // ── SUY LUẬN ──────────────────────────────────────────────────────────────
+  // Tuổi: hiệu – tỉ
+  () => {
+    const ti = pick([2, 3, 4]), con = ri(5, 15), hieu = con * (ti - 1), cha = con * ti, o = numOptions(con, 'tuổi');
+    return { question: `Tuổi cha gấp ${ti} lần tuổi con và cha hơn con ${hieu} tuổi.\nHỏi con bao nhiêu tuổi?`, question_speech: `Tuổi cha gấp ${docSo(ti)} lần tuổi con và cha hơn con ${docSo(hieu)} tuổi. Hỏi con mấy tuổi?`, options: o.options, correct_index: o.correct_index, explanation: `Cha gấp ${ti} lần con nên hiệu số tuổi bằng ${ti} − 1 = ${ti - 1} lần tuổi con. Tuổi con = ${hieu} : ${ti - 1} = ${con} tuổi.`, explanation_speech: `Con ${docSo(con)} tuổi.` };
+  },
+  // Bốc bi chắc chắn đủ 3 màu
+  () => {
+    const a = ri(4, 10), b = ri(4, 10), c = ri(4, 10), mn = Math.min(a, b, c), ans = a + b + c - mn + 1, o = numOptions(ans, 'viên');
+    return { question: `Một hộp có ${a} bi đỏ, ${b} bi xanh và ${c} bi vàng.\nKhông nhìn vào hộp, phải lấy ít nhất bao nhiêu viên để chắc chắn có đủ cả ba màu?`, question_speech: `Hộp có ${docSo(a)} bi đỏ, ${docSo(b)} bi xanh, ${docSo(c)} bi vàng. Phải lấy ít nhất mấy viên để chắc chắn đủ ba màu?`, options: o.options, correct_index: o.correct_index, explanation: `Trường hợp xấu nhất lấy hết bi của hai màu nhiều nhất mà vẫn thiếu màu ít nhất (${mn} viên): lấy ${a + b + c} − ${mn} = ${a + b + c - mn} viên. Thêm 1 viên nữa là đủ 3 màu. Vậy cần ${a + b + c - mn} + 1 = ${ans} viên.`, explanation_speech: `Cần ít nhất ${docSo(ans)} viên.` };
+  },
+  // Rút về đơn vị (mua hàng)
+  () => {
+    const sl = ri(2, 6), donGia = ri(3, 9) * 1000, tong = sl * donGia, sl2 = ri(2, 9), ans = donGia * sl2, o = numOptions(ans, 'đồng');
+    return { question: `Mua ${sl} quyển vở hết ${tong} đồng.\nHỏi mua ${sl2} quyển vở như thế hết bao nhiêu tiền?`, question_speech: `Mua ${docSo(sl)} quyển vở hết ${docSo(tong)} đồng. Hỏi mua ${docSo(sl2)} quyển như thế hết bao nhiêu tiền?`, options: o.options, correct_index: o.correct_index, explanation: `Giá 1 quyển = ${tong} : ${sl} = ${donGia} đồng. Mua ${sl2} quyển hết ${donGia} × ${sl2} = ${ans} đồng.`, explanation_speech: `Mua ${docSo(sl2)} quyển hết ${docSo(ans)} đồng.` };
+  },
+  // Đếm số tự nhiên từ a đến b
+  () => {
+    const a = ri(5, 40), b = a + ri(10, 50), ans = b - a + 1, o = numOptions(ans, 'số');
+    return { question: `Có bao nhiêu số tự nhiên từ ${a} đến ${b} (tính cả ${a} và ${b})?`, question_speech: `Có bao nhiêu số tự nhiên từ ${docSo(a)} đến ${docSo(b)}?`, options: o.options, correct_index: o.correct_index, explanation: `Số các số tự nhiên liên tiếp từ ${a} đến ${b} = ${b} − ${a} + 1 = ${ans} số.`, explanation_speech: `Có ${docSo(ans)} số.` };
+  },
 ];
 
+const DIFFS: Level[] = ['medium', 'medium', 'medium', 'easy', 'easy', 'medium', 'easy', 'medium', 'medium', 'medium', 'medium', 'hard', 'hard', 'hard', 'medium'];
+
 async function main() {
-  const qs = generate(1000, FAMILIES);
+  const qs = generate(1000, FAMILIES, DIFFS);
   await seedGrade(4, qs, SUBJECT);
 }
 main().catch((e) => { console.error('❌', e.message); process.exit(1); });

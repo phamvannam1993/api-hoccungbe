@@ -73,6 +73,11 @@ export class CreateIqQuestionDto {
   @IsString()
   explanationSpeech?: string;
 
+  @ApiPropertyOptional({ enum: ['easy', 'medium', 'hard'], description: 'Mức độ khó' })
+  @IsOptional()
+  @IsString()
+  difficulty?: 'easy' | 'medium' | 'hard';
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS iq_questions (
   countdownJson JSON NULL,
   explanation TEXT NULL,
   explanationSpeech TEXT NULL,
+  difficulty ENUM('easy','medium','hard') NOT NULL DEFAULT 'medium',
   sortOrder INT UNSIGNED NOT NULL DEFAULT 1,
   isActive TINYINT(1) NOT NULL DEFAULT 1,
   createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

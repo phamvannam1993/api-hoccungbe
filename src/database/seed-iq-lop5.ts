@@ -3,7 +3,7 @@
  * Chuyển động (v=s/t), tỉ số phần trăm, diện tích tam giác/thang, thể tích, phân số (a/b), đổi đơn vị.
  */
 import 'dotenv/config';
-import { createGen, generate, seedGrade, docSo, capitalize, type Q } from './iq-gen';
+import { createGen, generate, seedGrade, docSo, capitalize, type Q, type Level } from './iq-gen';
 
 const G = createGen(550005);
 const { ri, pick, numOptions, fromPool } = G;
@@ -74,10 +74,35 @@ const FAMILIES: Array<() => Q | null> = [
     const m = ri(2, 30), ans = m * 100, o = numOptions(ans, 'cm');
     return { question: `Đổi: ${m} m = ? cm`, question_speech: `Đổi ${docSo(m)} mét ra bao nhiêu xăng-ti-mét?`, options: o.options, correct_index: o.correct_index, explanation: `1 m = 100 cm, nên ${m} m = ${m} × 100 = ${ans} cm.`, explanation_speech: `${capitalize(docSo(m))} mét bằng ${docSo(ans)} xăng-ti-mét.` };
   },
+  // ── SUY LUẬN ──────────────────────────────────────────────────────────────
+  // Chuyển động ngược chiều gặp nhau
+  () => {
+    const v1 = ri(30, 55), v2 = ri(30, 55), t = ri(2, 5), S = (v1 + v2) * t, o = numOptions(t, 'giờ');
+    return { question: `Hai xe xuất phát cùng lúc từ hai địa điểm cách nhau ${S} km, đi ngược chiều để gặp nhau. Vận tốc hai xe là ${v1} km/giờ và ${v2} km/giờ.\nHỏi sau mấy giờ hai xe gặp nhau?`, question_speech: `Hai xe cách nhau ${docSo(S)} ki-lô-mét, đi ngược chiều, vận tốc ${docSo(v1)} và ${docSo(v2)} ki-lô-mét trên giờ. Hỏi sau mấy giờ gặp nhau?`, options: o.options, correct_index: o.correct_index, explanation: `Mỗi giờ hai xe đi gần nhau ${v1} + ${v2} = ${v1 + v2} km. Thời gian gặp nhau = ${S} : ${v1 + v2} = ${t} giờ.`, explanation_speech: `Sau ${docSo(t)} giờ hai xe gặp nhau.` };
+  },
+  // Giảm giá phần trăm
+  () => {
+    const p = pick([10, 20, 25, 50]), gia = ri(1, 12) * 20000, giam = (gia * p) / 100, ans = gia - giam, o = numOptions(ans, 'đồng');
+    return { question: `Một món hàng giá ${gia} đồng được giảm ${p}%.\nHỏi giá sau khi giảm là bao nhiêu?`, question_speech: `Món hàng giá ${docSo(gia)} đồng, giảm ${docSo(p)} phần trăm. Hỏi giá sau khi giảm?`, options: o.options, correct_index: o.correct_index, explanation: `Số tiền giảm = ${gia} × ${p} : 100 = ${giam} đồng. Giá sau giảm = ${gia} − ${giam} = ${ans} đồng.`, explanation_speech: `Giá sau khi giảm là ${docSo(ans)} đồng.` };
+  },
+  // Tuổi: hiệu – tỉ
+  () => {
+    const ti = pick([2, 3, 4]), con = ri(6, 16), hieu = con * (ti - 1), o = numOptions(con, 'tuổi');
+    return { question: `Tuổi mẹ gấp ${ti} lần tuổi con, mẹ hơn con ${hieu} tuổi.\nHỏi con bao nhiêu tuổi?`, question_speech: `Tuổi mẹ gấp ${docSo(ti)} lần tuổi con, mẹ hơn con ${docSo(hieu)} tuổi. Hỏi con mấy tuổi?`, options: o.options, correct_index: o.correct_index, explanation: `Hiệu số tuổi bằng ${ti} − 1 = ${ti - 1} lần tuổi con. Tuổi con = ${hieu} : ${ti - 1} = ${con} tuổi.`, explanation_speech: `Con ${docSo(con)} tuổi.` };
+  },
+  // Tìm số còn lại khi biết trung bình cộng
+  () => {
+    const avg = ri(10, 40), a = avg + ri(-6, 6), b = avg + ri(-6, 6), c = 3 * avg - a - b;
+    if (c < 1) return null;
+    const o = numOptions(c);
+    return { question: `Trung bình cộng của ba số là ${avg}. Hai trong ba số đó là ${a} và ${b}.\nTìm số thứ ba.`, question_speech: `Trung bình cộng ba số là ${docSo(avg)}. Hai số là ${docSo(a)} và ${docSo(b)}. Tìm số thứ ba.`, options: o.options, correct_index: o.correct_index, explanation: `Tổng ba số = trung bình × 3 = ${avg} × 3 = ${3 * avg}. Số thứ ba = ${3 * avg} − ${a} − ${b} = ${c}.`, explanation_speech: `Số thứ ba là ${docSo(c)}.` };
+  },
 ];
 
+const DIFFS: Level[] = ['medium', 'medium', 'medium', 'medium', 'medium', 'medium', 'hard', 'medium', 'medium', 'medium', 'easy', 'hard', 'hard', 'hard', 'hard'];
+
 async function main() {
-  const qs = generate(1000, FAMILIES);
+  const qs = generate(1000, FAMILIES, DIFFS);
   await seedGrade(5, qs, SUBJECT);
 }
 main().catch((e) => { console.error('❌', e.message); process.exit(1); });
