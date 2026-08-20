@@ -7,6 +7,11 @@ export class ExamQuestion extends BaseEntityCommon {
   @Column({ type: 'bigint', unsigned: true })
   examId: number;
 
+  // Liên kết tới câu hỏi gốc trong bảng quizzes (nội dung vẫn được snapshot ở dưới
+  // để đề cố định cho SEO, nhưng vẫn truy vết được nguồn).
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  quizId?: number;
+
   @Column({ type: 'text' })
   questionText: string;
 

@@ -18,8 +18,13 @@ export class ExamsController {
   constructor(private readonly examsService: ExamsService) {}
 
   @Get()
-  findAll(@Query('subject') subject?: string, @Query('grade') grade?: string, @Query('all') all?: string) {
-    return this.examsService.findAll(subject, grade ? Number(grade) : undefined, all === '1');
+  findAll(
+    @Query('subject') subject?: string,
+    @Query('grade') grade?: string,
+    @Query('all') all?: string,
+    @Query('examGroup') examGroup?: string,
+  ) {
+    return this.examsService.findAll(subject, grade ? Number(grade) : undefined, all === '1', examGroup || undefined);
   }
 
   @Get(':id')

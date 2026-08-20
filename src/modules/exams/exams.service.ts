@@ -11,12 +11,16 @@ export class ExamsService {
     @InjectRepository(ExamQuestion) private questionRepo: Repository<ExamQuestion>,
   ) {}
 
-  findAll(subject?: string, grade?: number, includeInactive = false) {
+  findAll(subject?: string, grade?: number, includeInactive = false, examGroup?: string) {
     const where: Record<string, unknown> = {};
     if (!includeInactive) where.isActive = true;
     if (subject) where.subject = subject;
     if (grade) where.grade = grade;
-    return this.examRepo.find({ where, order: { grade: 'ASC', semester: 'ASC', id: 'ASC' } });
+    if (examGroup) where.examGroup = examGroup;
+    return this.examRepo.find({
+      where,
+      order: { grade: 'ASC', semester: 'ASC', examGroup: 'ASC', orderIndex: 'ASC', id: 'ASC' },
+    });
   }
 
   async findBySlug(slug: string) {
