@@ -4,11 +4,12 @@
  * Số đến 100, làm quen bảng nhân 2 & 5, dãy số, so sánh, chục–đơn vị, logic.
  */
 import 'dotenv/config';
-import { createGen, generate, seedGrade, docSo, capitalize, NOUNS, NAMES, type Q } from './iq-gen';
+import { createGen, generate, seedGrade, docSo, capitalize, NOUNS, NAMES, type Q, type Level } from './iq-gen';
 
 const G = createGen(220002);
 const { ri, pick, numOptions, fromPool } = G;
 const SUBJECT = 'THỬ THÁCH IQ|LỚP 2 - Toán tư duy';
+const THU = ['Chủ nhật', 'thứ Hai', 'thứ Ba', 'thứ Tư', 'thứ Năm', 'thứ Sáu', 'thứ Bảy'];
 
 const FAMILIES: Array<() => Q | null> = [
   // Cộng trong 100
@@ -75,10 +76,33 @@ const FAMILIES: Array<() => Q | null> = [
     const a = ri(5, 25), b = ri(5, 25), c = ri(5, 25), ans = a + b + c, o = numOptions(ans);
     return { question: `Tính: ${a} + ${b} + ${c} = ?`, question_speech: `Tính ${docSo(a)} cộng ${docSo(b)} cộng ${docSo(c)}.`, options: o.options, correct_index: o.correct_index, explanation: `Cộng lần lượt: ${a} + ${b} = ${a + b}; ${a + b} + ${c} = ${ans}.`, explanation_speech: `Kết quả bằng ${docSo(ans)}.` };
   },
+  // ── SUY LUẬN ──────────────────────────────────────────────────────────────
+  // Thứ tự trong hàng
+  () => {
+    const T = ri(6, 12), pos = ri(2, T - 1), ans = T - pos + 1, name = pick(NAMES), o = numOptions(ans);
+    return { question: `Một hàng có ${T} bạn. ${name} đứng thứ ${pos} tính từ đầu hàng.\nHỏi ${name} đứng thứ mấy tính từ cuối hàng?`, question_speech: `Một hàng có ${docSo(T)} bạn. ${name} đứng thứ ${docSo(pos)} từ đầu hàng. Hỏi ${name} đứng thứ mấy từ cuối hàng?`, options: o.options, correct_index: o.correct_index, explanation: `Số bạn đứng sau ${name} là ${T} − ${pos} = ${T - pos}. Tính cả ${name} thì từ cuối lên ${name} đứng thứ ${T - pos} + 1 = ${ans}.`, explanation_speech: `${name} đứng thứ ${docSo(ans)} từ cuối hàng.` };
+  },
+  // Giả thiết tạm: gà và chó
+  () => {
+    const ga = ri(3, 10), cho = ri(2, 8), H = ga + cho, C = 2 * ga + 4 * cho, o = numOptions(ga, 'con');
+    return { question: `Vừa gà vừa chó có tất cả ${H} con, đếm được ${C} chân.\nHỏi có bao nhiêu con gà?`, question_speech: `Vừa gà vừa chó có ${docSo(H)} con, đếm được ${docSo(C)} chân. Hỏi có mấy con gà?`, options: o.options, correct_index: o.correct_index, explanation: `Giả sử tất cả ${H} con đều là chó thì có ${H} × 4 = ${4 * H} chân, thừa ra ${4 * H} − ${C} = ${4 * H - C} chân. Mỗi lần đổi 1 con chó thành 1 con gà bớt 2 chân, nên số gà = ${4 * H - C} : 2 = ${ga} con.`, explanation_speech: `Số con gà bằng ${docSo(ga)}.` };
+  },
+  // Lập số 2 chữ số khác nhau
+  () => {
+    const digs = [ri(1, 3), ri(4, 6), ri(7, 9)].sort((a, b) => a - b), n = digs.length, ans = n * (n - 1), o = numOptions(ans, 'số');
+    return { question: `Từ ba chữ số ${digs.join(', ')} lập được bao nhiêu số có hai chữ số khác nhau?`, question_speech: `Từ ba chữ số ${digs.map(docSo).join(', ')} lập được bao nhiêu số có hai chữ số khác nhau?`, options: o.options, correct_index: o.correct_index, explanation: `Chữ số hàng chục có ${n} cách chọn, hàng đơn vị còn ${n - 1} cách (khác hàng chục). Vậy có ${n} × ${n - 1} = ${ans} số.`, explanation_speech: `Có ${docSo(n)} nhân ${docSo(n - 1)} bằng ${docSo(ans)} số.` };
+  },
+  // Suy luận thứ trong tuần
+  () => {
+    const d0 = ri(0, 6), add = ri(2, 5), ans = THU[(d0 + add) % 7], pool = THU.slice(), o = fromPool(ans, pool);
+    return { question: `Hôm nay là ${THU[d0]}.\nHỏi ${add} ngày nữa là thứ mấy?`, question_speech: `Hôm nay là ${THU[d0]}. Hỏi ${docSo(add)} ngày nữa là thứ mấy?`, options: o.options, correct_index: o.correct_index, explanation: `Đếm tiếp ${add} ngày từ ${THU[d0]} (một tuần có 7 ngày, lặp lại) ta được ${ans}.`, explanation_speech: `${capitalize(String(docSo(add)))} ngày nữa là ${ans}.` };
+  },
 ];
 
+const DIFFS: Level[] = ['easy', 'easy', 'easy', 'easy', 'easy', 'medium', 'easy', 'medium', 'medium', 'medium', 'medium', 'medium', 'hard', 'hard', 'medium'];
+
 async function main() {
-  const qs = generate(1000, FAMILIES);
+  const qs = generate(1000, FAMILIES, DIFFS);
   await seedGrade(2, qs, SUBJECT);
 }
 main().catch((e) => { console.error('❌', e.message); process.exit(1); });

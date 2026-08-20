@@ -4,6 +4,8 @@
  */
 import { createConnection } from 'mysql2/promise';
 
+export type Level = 'easy' | 'medium' | 'hard';
+
 export type Q = {
   question: string;
   question_speech: string;
@@ -11,6 +13,7 @@ export type Q = {
   correct_index: number;
   explanation: string;
   explanation_speech: string;
+  difficulty?: Level;
 };
 
 export function mulberry32(a: number) {
@@ -126,16 +129,20 @@ export function createGen(seed: number): Gen {
   return { rnd, ri, pick, numOptions, fromPool };
 }
 
-/** Sinh `count` câu KHÔNG trùng từ danh sách dạng bài (round-robin cân bằng). */
-export function generate(count: number, families: Array<() => Q | null>): Q[] {
+/**
+ * Sinh `count` câu KHÔNG trùng từ danh sách dạng bài (round-robin cân bằng).
+ * `difficulties` (tùy chọn) song song với `families` — gán mức khó cho câu theo dạng bài.
+ */
+export function generate(count: number, families: Array<() => Q | null>, difficulties?: Level[]): Q[] {
   const out: Q[] = [];
   const seen = new Set<string>();
   let i = 0;
   let guard = 0;
   while (out.length < count && guard < count * 80) {
-    guard++;
-    const fam = families[i % families.length];
+    const famIndex = i % families.length;
+    const fam = families[famIndex];
     i++;
+    guard++;
     const q = fam();
     if (!q) continue;
     if (q.correct_index < 0 || q.correct_index > 3 || q.options.length !== 4) continue;
@@ -143,6 +150,7 @@ export function generate(count: number, families: Array<() => Q | null>): Q[] {
     const key = q.question.replace(/\s+/g, ' ').trim();
     if (seen.has(key)) continue;
     seen.add(key);
+    q.difficulty = q.difficulty ?? difficulties?.[famIndex] ?? 'medium';
     out.push(q);
   }
   return out;
@@ -162,6 +170,7 @@ CREATE TABLE IF NOT EXISTS iq_questions (
   countdownJson JSON NULL,
   explanation TEXT NULL,
   explanationSpeech TEXT NULL,
+  difficulty ENUM('easy','medium','hard') NOT NULL DEFAULT 'medium',
   sortOrder INT UNSIGNED NOT NULL DEFAULT 1,
   isActive TINYINT(1) NOT NULL DEFAULT 1,
   createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -176,6 +185,9 @@ export async function seedGrade(grade: number, questions: Q[], subject: string, 
   console.log(`\n[Lớp ${grade}] Đã sinh ${questions.length} câu (không trùng).`);
   const bad = questions.filter((q) => q.options[q.correct_index] == null);
   console.log(`[Lớp ${grade}] Câu lỗi đáp án: ${bad.length} (phải 0).`);
+  const byDiff = { easy: 0, medium: 0, hard: 0 } as Record<Level, number>;
+  for (const q of questions) byDiff[q.difficulty ?? 'medium']++;
+  console.log(`[Lớp ${grade}] Mức khó: dễ ${byDiff.easy} · TB ${byDiff.medium} · khó ${byDiff.hard}`);
   console.log('— 3 câu mẫu —');
   for (const q of questions.slice(0, 3)) {
     console.log(`  Q: ${q.question.replace(/\n/g, ' ')}`);
@@ -198,18 +210,22 @@ export async function seedGrade(grade: number, questions: Q[], subject: string, 
   });
   try {
     await conn.query(CREATE_TABLE);
+    // Bảng đã tồn tại từ trước (chưa có cột difficulty) → thêm cột, bỏ qua nếu đã có.
+    try {
+      await conn.query(`ALTER TABLE iq_questions ADD COLUMN difficulty ENUM('easy','medium','hard') NOT NULL DEFAULT 'medium' AFTER explanationSpeech`);
+    } catch { /* cột đã tồn tại */ }
     let n = 0;
     for (const q of questions) {
       const code = `iq-l${grade}-${String(n + 1).padStart(4, '0')}`;
       await conn.query(
         `INSERT INTO iq_questions
-          (code, grade, subject, lesson, question, questionSpeech, optionsJson, correctIndex, explanation, explanationSpeech, sortOrder, isActive)
-         VALUES (?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, 1)
+          (code, grade, subject, lesson, question, questionSpeech, optionsJson, correctIndex, explanation, explanationSpeech, difficulty, sortOrder, isActive)
+         VALUES (?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, 1)
          ON DUPLICATE KEY UPDATE
            question=VALUES(question), questionSpeech=VALUES(questionSpeech), optionsJson=VALUES(optionsJson),
            correctIndex=VALUES(correctIndex), explanation=VALUES(explanation), explanationSpeech=VALUES(explanationSpeech),
-           sortOrder=VALUES(sortOrder), isActive=1`,
-        [code, grade, subject, lesson, q.question, q.question_speech, JSON.stringify(q.options), q.correct_index, q.explanation, q.explanation_speech, n + 1],
+           difficulty=VALUES(difficulty), sortOrder=VALUES(sortOrder), isActive=1`,
+        [code, grade, subject, lesson, q.question, q.question_speech, JSON.stringify(q.options), q.correct_index, q.explanation, q.explanation_speech, q.difficulty ?? 'medium', n + 1],
       );
       n++;
     }
