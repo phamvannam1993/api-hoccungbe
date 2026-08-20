@@ -7,6 +7,13 @@
   "license": "UNLICENSED",
   "scripts": {
     "db:migrate:full": "ts-node -r tsconfig-paths/register src/database/run-migration.ts",
+    "db:iq:table": "ts-node -r tsconfig-paths/register src/database/create-iq-questions-table.ts",
+    "seed:iq-lop1": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop1.ts",
+    "seed:iq-lop2": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop2.ts",
+    "seed:iq-lop3": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop3.ts",
+    "seed:iq-lop4": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop4.ts",
+    "seed:iq-lop5": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop5.ts",
+    "seed:iq-all": "npm run seed:iq-lop1 && npm run seed:iq-lop2 && npm run seed:iq-lop3 && npm run seed:iq-lop4 && npm run seed:iq-lop5",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
     "seed:lessons": "ts-node -r tsconfig-paths/register src/database/seed-lessons.ts",
     "seed:details": "ts-node -r tsconfig-paths/register src/database/seed-lesson-details.ts",

@@ -6,6 +6,7 @@ import { ChildrenModule } from './modules/children/children.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { QuizzesModule } from './modules/quizzes/quizzes.module';
+import { IqQuestionsModule } from './modules/iq-questions/iq-questions.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { RewardsModule } from './modules/rewards/rewards.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -67,6 +68,7 @@ import { BatchModule } from './modules/batch/batch.module';
     CoursesModule,
     LessonsModule,
     QuizzesModule,
+    IqQuestionsModule,
     ProgressModule,
     AuthModule,
     RewardsModule,
