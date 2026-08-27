@@ -10,12 +10,13 @@ const SQL = `
 CREATE TABLE IF NOT EXISTS challenge_scores (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(60) NOT NULL,
+  grade TINYINT UNSIGNED NOT NULL DEFAULT 1,
   score INT UNSIGNED NOT NULL DEFAULT 0,
   week VARCHAR(10) NOT NULL,
   updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_challenge_name_week (name, week),
-  KEY idx_challenge_week_score (week, score)
+  UNIQUE KEY uq_challenge_name_week_grade (name, week, grade),
+  KEY idx_challenge_week_grade_score (week, grade, score)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
