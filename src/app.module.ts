@@ -24,6 +24,7 @@ import { MiniGamesModule } from './modules/mini-games/mini-games.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { VocabImagesModule } from './modules/vocab-images/vocab-images.module';
+import { ChallengesModule } from './modules/challenges/challenges.module';
 import { TtsModule } from './modules/tts/tts.module';
 import { AttemptsModule } from './modules/attempts/attempts.module';
 import { StreaksModule } from './modules/streaks/streaks.module';
@@ -96,6 +97,7 @@ import { BatchModule } from './modules/batch/batch.module';
     MiniGamesModule,
     CategoriesModule,
     VocabImagesModule,
+    ChallengesModule,
     DocumentsModule,
     TtsModule,
   ],
