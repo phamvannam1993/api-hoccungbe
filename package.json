@@ -20,6 +20,7 @@
     "seed:articles-ta": "ts-node -r tsconfig-paths/register src/database/seed-articles-tieng-anh.ts",
     "seed:articles-tv": "ts-node -r tsconfig-paths/register src/database/seed-articles-tieng-viet.ts",
     "seed:articles-features2": "ts-node -r tsconfig-paths/register src/database/seed-articles-features2.ts",
+    "seed:articles-features3": "ts-node -r tsconfig-paths/register src/database/seed-articles-features3.ts",
     "seed:articles-features": "ts-node -r tsconfig-paths/register src/database/seed-articles-features.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
     "seed:lessons": "ts-node -r tsconfig-paths/register src/database/seed-lessons.ts",
