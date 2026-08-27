@@ -21,15 +21,21 @@ export class ChallengesService {
     @InjectRepository(ChallengeScore) private readonly repo: Repository<ChallengeScore>,
   ) {}
 
-  /** Nộp điểm: giữ điểm cao nhất của biệt danh trong tuần hiện tại. Trả về điểm & hạng. */
-  async submit(rawName: string, rawScore: number): Promise<{ name: string; score: number; rank: number; best: number }> {
+  private normGrade(g: unknown): number {
+    const n = Math.floor(Number(g) || 1);
+    return Math.min(5, Math.max(1, n));
+  }
+
+  /** Nộp điểm: giữ điểm cao nhất của biệt danh trong tuần & lớp hiện tại. Trả về điểm & hạng. */
+  async submit(rawName: string, rawScore: number, rawGrade: unknown): Promise<{ name: string; score: number; grade: number; rank: number; best: number }> {
     const name = (rawName || 'Bé ẩn danh').toString().trim().slice(0, 40) || 'Bé ẩn danh';
     const score = Math.max(0, Math.min(999, Math.floor(Number(rawScore) || 0)));
+    const grade = this.normGrade(rawGrade);
     const week = currentWeek();
 
-    let row = await this.repo.findOne({ where: { name, week } });
+    let row = await this.repo.findOne({ where: { name, week, grade } });
     if (!row) {
-      row = this.repo.create({ name, week, score });
+      row = this.repo.create({ name, week, grade, score });
       await this.repo.save(row);
     } else if (score > row.score) {
       row.score = score;
@@ -37,21 +43,22 @@ export class ChallengesService {
     }
 
     const best = row.score;
-    // Hạng = số bé có điểm cao hơn + 1.
+    // Hạng trong CÙNG lớp = số bé có điểm cao hơn + 1.
     const higher = await this.repo
       .createQueryBuilder('c')
-      .where('c.week = :week AND c.score > :best', { week, best })
+      .where('c.week = :week AND c.grade = :grade AND c.score > :best', { week, grade, best })
       .getCount();
-    return { name, score, rank: higher + 1, best };
+    return { name, score, grade, rank: higher + 1, best };
   }
 
-  async leaderboard(limit = 20): Promise<{ week: string; rows: LeaderRow[] }> {
+  async leaderboard(rawGrade: unknown, limit = 20): Promise<{ week: string; grade: number; rows: LeaderRow[] }> {
     const week = currentWeek();
+    const grade = this.normGrade(rawGrade);
     const list = await this.repo.find({
-      where: { week },
+      where: { week, grade },
       order: { score: 'DESC', updatedAt: 'ASC' },
       take: Math.min(Math.max(limit, 1), 100),
     });
-    return { week, rows: list.map((r, i) => ({ name: r.name, score: r.score, rank: i + 1 })) };
+    return { week, grade, rows: list.map((r, i) => ({ name: r.name, score: r.score, rank: i + 1 })) };
   }
 }
