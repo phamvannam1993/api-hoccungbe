@@ -5,10 +5,10 @@ import { ChallengesService } from './challenges.service';
 export class ChallengesController {
   constructor(private readonly service: ChallengesService) {}
 
-  /** Nộp điểm thử thách. Body: { name, score, grade, subject }. Công khai (không cần đăng nhập). */
+  /** Nộp điểm thử thách. Body: { name, score, grade, subject, time }. Công khai (không cần đăng nhập). */
   @Post('submit')
-  submit(@Body('name') name: string, @Body('score') score: number, @Body('grade') grade: number, @Body('subject') subject: string) {
-    return this.service.submit(name, score, grade, subject);
+  submit(@Body('name') name: string, @Body('score') score: number, @Body('grade') grade: number, @Body('subject') subject: string, @Body('time') time?: number) {
+    return this.service.submit(name, score, grade, subject, time);
   }
 
   /** Bảng xếp hạng tuần hiện tại theo lớp & môn. */
