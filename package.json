@@ -24,6 +24,7 @@
     "seed:articles-features3": "ts-node -r tsconfig-paths/register src/database/seed-articles-features3.ts",
     "seed:articles-features4": "ts-node -r tsconfig-paths/register src/database/seed-articles-features4.ts",
     "seed:articles-features5": "ts-node -r tsconfig-paths/register src/database/seed-articles-features5.ts",
+    "seed:articles-features6": "ts-node -r tsconfig-paths/register src/database/seed-articles-features6.ts",
     "seed:articles-features": "ts-node -r tsconfig-paths/register src/database/seed-articles-features.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
     "seed:lessons": "ts-node -r tsconfig-paths/register src/database/seed-lessons.ts",
