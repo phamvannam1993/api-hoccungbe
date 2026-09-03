@@ -19,7 +19,7 @@ export function currentWeek(d = new Date()): string {
   return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
-export type LeaderRow = { name: string; score: number; rank: number };
+export type LeaderRow = { name: string; score: number; rank: number; avatar: string | null };
 
 @Injectable()
 export class ChallengesService {
@@ -44,22 +44,24 @@ export class ChallengesService {
    * server CỘNG DỒN vào điểm NGÀY nhưng chặn TRẦN 1000/ngày (chống cày). Điểm xếp hạng
    * TUẦN = tổng điểm các ngày trong tuần. Trả về hạng tuần & tổng điểm tuần (best).
    */
-  async submit(rawName: string, rawScore: number, rawGrade: unknown, rawSubject: unknown, rawTime?: unknown): Promise<{ name: string; score: number; grade: number; subject: string; rank: number; best: number; dayPoints: number; capped: boolean }> {
+  async submit(rawName: string, rawScore: number, rawGrade: unknown, rawSubject: unknown, rawTime?: unknown, rawAvatar?: unknown): Promise<{ name: string; score: number; grade: number; subject: string; rank: number; best: number; dayPoints: number; capped: boolean }> {
     const name = (rawName || 'Bé ẩn danh').toString().trim().slice(0, 40) || 'Bé ẩn danh';
     const score = Math.max(0, Math.min(999, Math.floor(Number(rawScore) || 0)));
     const timeSec = Math.max(0, Math.min(3600, Math.floor(Number(rawTime) || 0))); // giây thi lượt này (chặn 1h)
+    const avatar = typeof rawAvatar === 'string' && rawAvatar ? rawAvatar.slice(0, 255) : null;
     const grade = this.normGrade(rawGrade);
     const subject = this.normSubject(rawSubject);
     const week = currentWeek();
     const date = currentDate();
 
-    // Cộng dồn điểm ngày, chặn trần 1000; cộng dồn thời gian để phá hoà.
+    // Cộng dồn điểm ngày, chặn trần 1000; cộng dồn thời gian để phá hoà; lưu ảnh mới nhất.
     let row = await this.daily.findOne({ where: { name, date, grade, subject } });
     if (!row) {
-      row = this.daily.create({ name, date, week, grade, subject, points: Math.min(DAILY_CAP, score), timeSec });
+      row = this.daily.create({ name, date, week, grade, subject, points: Math.min(DAILY_CAP, score), timeSec, avatar });
     } else {
       row.points = Math.min(DAILY_CAP, row.points + score);
       row.timeSec = row.timeSec + timeSec;
+      if (avatar) row.avatar = avatar;
     }
     await this.daily.save(row);
     const dayPoints = row.points;
@@ -96,13 +98,14 @@ export class ChallengesService {
       .select('d.name', 'name')
       .addSelect('SUM(d.points)', 'score')
       .addSelect('SUM(d.timeSec)', 'time')
+      .addSelect('MAX(d.avatar)', 'avatar')
       .where('d.week = :week AND d.grade = :grade AND d.subject = :subject', { week, grade, subject })
       .groupBy('d.name')
       .orderBy('score', 'DESC')
       .addOrderBy('time', 'ASC')
       .addOrderBy('MAX(d.updatedAt)', 'ASC')
       .limit(Math.min(Math.max(limit, 1), 100))
-      .getRawMany<{ name: string; score: string }>();
-    return { week, grade, subject, rows: rows.map((r, i) => ({ name: r.name, score: Number(r.score), rank: i + 1 })) };
+      .getRawMany<{ name: string; score: string; avatar: string | null }>();
+    return { week, grade, subject, rows: rows.map((r, i) => ({ name: r.name, score: Number(r.score), rank: i + 1, avatar: r.avatar || null })) };
   }
 }

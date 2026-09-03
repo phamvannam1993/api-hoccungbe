@@ -33,6 +33,9 @@ export class ChallengeDaily {
   @Column({ type: 'int', unsigned: true, default: 0 })
   timeSec: number; // tổng thời gian đã thi (giây) — phá hoà khi bằng điểm: ít hơn xếp trên
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  avatar: string | null; // ảnh đại diện của bé (đường dẫn) để hiện trên bảng xếp hạng
+
   @UpdateDateColumn()
   updatedAt: Date;
 }

@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS challenge_daily (
   grade TINYINT UNSIGNED NOT NULL DEFAULT 1,
   points INT UNSIGNED NOT NULL DEFAULT 0,
   timeSec INT UNSIGNED NOT NULL DEFAULT 0,
+  avatar VARCHAR(255) NULL,
   updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_challenge_daily (name, date, grade, subject),
@@ -36,6 +37,16 @@ async function main() {
     multipleStatements: true,
   });
   await conn.query(SQL);
+  // Đảm bảo cột `avatar` tồn tại (bảng cũ tạo trước khi thêm ảnh) — thêm nếu thiếu.
+  const [cols] = (await conn.query(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'challenge_daily' AND COLUMN_NAME = 'avatar'`,
+    [database],
+  )) as unknown as [Array<{ COLUMN_NAME: string }>];
+  if (!cols.length) {
+    await conn.query(`ALTER TABLE challenge_daily ADD COLUMN avatar VARCHAR(255) NULL AFTER timeSec`);
+    console.log('  + Đã thêm cột avatar.');
+  }
   console.log('✓ Đã tạo/đảm bảo bảng challenge_daily.');
   await conn.end();
 }
