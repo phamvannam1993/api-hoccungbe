@@ -33,6 +33,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { CertificatesModule } from './modules/certificates/certificates.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { SkillsModule } from './modules/skills/skills.module';
+import { SkillPracticeModule } from './modules/skill-practice/skill-practice.module';
 import { PlacementModule } from './modules/placement/placement.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { BatchModule } from './modules/batch/batch.module';
@@ -85,6 +86,7 @@ import { BatchModule } from './modules/batch/batch.module';
     CertificatesModule,
     GamificationModule,
     SkillsModule,
+    SkillPracticeModule,
     PlacementModule,
     ReportsModule,
     BatchModule,

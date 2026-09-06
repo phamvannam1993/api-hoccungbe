@@ -5,11 +5,12 @@ import { SkillsController } from './skills.controller';
 import { Skill } from './entities/skill.entity';
 import { LessonSkill } from './entities/lesson-skill.entity';
 import { GameSkill } from './entities/game-skill.entity';
+import { QuizSkill } from './entities/quiz-skill.entity';
 import { ChildSkillMastery } from './entities/child-skill-mastery.entity';
 import { QuizAttempt } from '../attempts/entities/quiz-attempt.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Skill, LessonSkill, GameSkill, ChildSkillMastery, QuizAttempt])],
+  imports: [TypeOrmModule.forFeature([Skill, LessonSkill, GameSkill, QuizSkill, ChildSkillMastery, QuizAttempt])],
   controllers: [SkillsController],
   providers: [SkillsService],
   exports: [SkillsService],
