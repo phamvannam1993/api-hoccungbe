@@ -55,6 +55,23 @@ const R = {
   int: (rng, lo, hi) => lo + Math.floor(rng() * (hi - lo + 1)),
   pick: (rng, arr) => arr[Math.floor(rng() * arr.length)],
   /**
+   * Dãy `n` số nguyên KHÁC NHAU trong [lo, hi].
+   * Cần thiết cho các câu so sánh/thống kê: nếu hai số bằng nhau thì câu hỏi
+   * "số nào lớn nhất" có HAI đáp án đúng, còn "sắp xếp từ bé đến lớn" lại viết
+   * ra "3 < 5 < 5" — sai toán.
+   */
+  ints: (rng, lo, hi, n) => {
+    const out = [];
+    const used = new Set();
+    for (let guard = 0; out.length < n && guard < (hi - lo + 1) * 8; guard++) {
+      const v = lo + Math.floor(rng() * (hi - lo + 1));
+      if (used.has(v)) continue;
+      used.add(v);
+      out.push(v);
+    }
+    return out;
+  },
+  /**
    * Lấy `n` phần tử KHÁC NHAU. Câu đáp án dạng chữ không bù nhiễu tự động được
    * (khác câu số), nên bốc trùng là mất luôn câu đó — phải lấy mẫu không lặp.
    */
@@ -174,12 +191,12 @@ GEN['so-sanh-so'] = (rng, g, d) => {
       `So sánh ${a} và ${b}: ${a > b ? `${a} lớn hơn ${b}` : `${a} bé hơn ${b}`}, nên điền dấu "${dau}".`);
   }
   if (kind === 'lon-nhat') {
-    const arr = [a, b, R.int(rng, 1, max), R.int(rng, 1, max)];
+    const arr = R.ints(rng, 1, max, 4);
     const mx = Math.max(...arr);
     return mc(rng, `Số nào lớn nhất trong các số: ${arr.join('; ')}?`, mx, arr.filter((x) => x !== mx),
       `So sánh lần lượt từng số. Số lớn nhất là ${mx}.`);
   }
-  const arr = [a, b, R.int(rng, 1, max)];
+  const arr = R.ints(rng, 1, max, 3);
   const sorted = [...arr].sort((x, y) => x - y);
   return mc(rng, `Sắp xếp các số sau từ bé đến lớn: ${arr.join('; ')}`, sorted.join(' < '),
     [[...arr].sort((x, y) => y - x).join(' < '), arr.join(' < '), [...sorted].reverse().join(' < ')],
@@ -520,7 +537,9 @@ GEN['chuyen-dong'] = (rng, g, d) => {
 
 GEN['thong-ke'] = (rng, g, d) => {
   const n = R.int(rng, 4, 5);
-  const vals = Array.from({ length: n }, () => R.int(rng, 2, 30));
+  // Số liệu các ngày phải KHÁC NHAU, nếu không câu "ngày nào đọc nhiều nhất"
+  // có hai đáp án cùng đúng.
+  const vals = R.ints(rng, 2, 30, n);
   const kind = R.pick(rng, ['tong', 'nhieu-nhat', 'trung-binh']);
   const names = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu'].slice(0, n);
   const bang = names.map((x, i) => `${x}: ${vals[i]}`).join('; ');
@@ -537,12 +556,12 @@ GEN['thong-ke'] = (rng, g, d) => {
       day, names.filter((x) => x !== day),
       `So sánh các số ${vals.join('; ')}, số lớn nhất là ${mx} — rơi vào ${day}.`);
   }
-  // Chỉnh số cuối để tổng chia hết cho số ngày — trung bình cộng ra số tròn,
-  // lời giải không phải làm tròn.
-  const head = vals.slice(0, n - 1);
-  const tbWanted = R.int(rng, 3, 25);
-  const last = tbWanted * n - head.reduce((a, b) => a + b, 0);
-  const fixed = last >= 1 ? [...head, last] : vals.map(() => tbWanted);
+  // Dựng số liệu quanh một trung bình cho trước bằng các ĐỘ LỆCH cộng lại bằng 0
+  // → tổng chia hết cho số ngày, lời giải không phải làm tròn, mà các ngày vẫn
+  // khác nhau (cách cũ có đường lui khiến cả 5 ngày cùng một số).
+  const tbWanted = R.int(rng, 6, 25);
+  const lech = R.ints(rng, -Math.min(5, tbWanted - 2), 5, n - 1);
+  const fixed = [...lech, -lech.reduce((a, b) => a + b, 0)].map((o) => tbWanted + o);
   const tong = fixed.reduce((a, b) => a + b, 0);
   const tb = tong / n;
   const bangTb = names.map((x, i) => `${x}: ${fixed[i]}`).join('; ');
@@ -582,7 +601,7 @@ GEN['nhan-biet-chu'] = (rng, g, d) => {
     const c = R.pick(rng, B.CHU_CAI);
     return mc(rng, `Chọn chữ cái "${c.toUpperCase()}" viết thường.`, c,
       R.sample(rng, B.CHU_CAI, 3, [c]),
-      `Chữ in hoa "${c.toUpperCase()}" viết thường là "${c}".`);
+      `Chữ hoa và chữ thường là hai kiểu viết của cùng một con chữ "${c}".`);
   }
   const gh = R.pick(rng, B.CHU_GHEP);
   if (d === 'medium') {
@@ -799,7 +818,7 @@ GEN['tu-vung-en'] = (rng, g, d) => {
     if (ba.length === 3) {
       // Đáp án đúng là từ LẠC, ba đáp án nhiễu là ba từ cùng nhóm.
       return mc(rng, 'Từ nào KHÔNG cùng nhóm với các từ còn lại?', lac, ba,
-        `${ba.join(', ')} đều chỉ ${NHOM_TEN[loai]}, riêng "${lac}" thì không.`);
+        `${ba.map((x) => `"${x}"`).join(', ')} đều chỉ ${NHOM_TEN[loai]}, riêng "${lac}" thì không.`);
     }
   }
 
@@ -832,8 +851,10 @@ GEN['mau-cau-en'] = (rng, g, d) => {
     // cả tính từ (green), danh từ không đếm được (bread) và bất quy tắc (foot).
     const [one, many, luat] = R.pick(rng, B.EN_PLURALS);
     const sai = [`${one}s`, `${one}es`, `${one}ies`, one].filter((x) => x !== many);
+    // Đặt từ tiếng Anh trong NGOẶC KÉP: bộ đọc dựa vào đó để chuyển sang giọng
+    // Anh, nếu để trần thì "candy → candies" bị đọc bằng giọng Việt.
     return mc(rng, `Số nhiều của "${one}" là:`, many, R.sample(rng, sai, 3),
-      `${luat}: ${one} → ${many}.`);
+      `${luat}: "${one}" → "${many}".`);
   }
   const [cau, dap, sai, giai] = R.pick(rng, B.EN_MAU_CAU);
   return mc(rng, `Điền vào chỗ trống: ${cau}`, dap, sai, giai);

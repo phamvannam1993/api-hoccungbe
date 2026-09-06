@@ -157,12 +157,26 @@ function badArithmetic(text) {
       add('Đáp án xuất hiện sẵn trong đề', r, `"${correct}" nằm trong: ${r.questionText.slice(0, 90)}`);
     }
 
-    // 7. Ký tự lỗi
+    // 7. Câu hỏi "lớn nhất / nhiều nhất" mà dữ liệu có SỐ TRÙNG ⇒ hai đáp án
+    // cùng đúng. Đã gặp thật: "Thứ Hai: 25 … Thứ Tư: 25 … ngày nào nhiều nhất?".
+    if (/(lớn nhất|nhiều nhất|bé nhất|ít nhất|nhỏ nhất)/i.test(r.questionText)) {
+      const soLieu = (r.questionText.match(/:\s*(\d+)[;,.]/g) || []).map((x) => Number(x.replace(/[^\d]/g, '')));
+      const day = [...(r.questionText.matchAll(/(\d+)(?=\s*[;?])/g))].map((m) => Number(m[1]));
+      const nums = soLieu.length >= 2 ? soLieu : day;
+      if (nums.length >= 2) {
+        const cuc = /lớn nhất|nhiều nhất/i.test(r.questionText) ? Math.max(...nums) : Math.min(...nums);
+        if (nums.filter((x) => x === cuc).length > 1) {
+          add('Có HAI đáp án cùng đúng (số liệu trùng)', r, `${r.questionText.slice(0, 100)}`);
+        }
+      }
+    }
+
+    // 8. Ký tự lỗi
     if (/undefined|NaN|Infinity|\[object/.test(r.questionText + r.explanation + opts.join(''))) {
       add('Có giá trị lỗi', r, r.questionText);
     }
 
-    // 8. Trùng câu
+    // 9. Trùng câu
     const sig = `${r.skill}|${r.grade}|${r.questionText}|${[...opts].sort().join('|')}`;
     if (seenSig.has(sig)) add('Câu trùng nhau', r, `trùng với #${seenSig.get(sig)}`);
     else seenSig.set(sig, r.id);
