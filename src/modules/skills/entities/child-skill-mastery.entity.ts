@@ -29,6 +29,17 @@ export class ChildSkillMastery extends BaseEntityCommon {
   @Column({ type: 'datetime', nullable: true })
   lastPracticedAt?: Date;
 
+  /**
+   * Hẹn lần ôn tiếp theo (ôn giãn cách). Quá hạn mà bé không ôn thì mức thành
+   * thạo bị coi là đã phai — vì "giỏi" là giữ được lâu, không phải đúng một buổi.
+   */
+  @Column({ type: 'datetime', nullable: true })
+  nextReviewAt?: Date;
+
+  /** Mốc bé lên/tụt bậc gần nhất. */
+  @Column({ type: 'datetime', nullable: true })
+  levelUpdatedAt?: Date;
+
   @ManyToOne(() => Skill, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'skillId' })
   skill?: Skill;

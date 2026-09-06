@@ -96,9 +96,7 @@ export class AttemptsService {
   private async runEngagement(dto: RecordAttemptDto, score: number) {
     const empty = { newBadges: [], completedQuests: [] };
     try {
-      const total = dto.answers.length;
-      const correct = dto.answers.filter((a) => a.isCorrect).length;
-      await this.skills.updateMasteryFromLesson(dto.childId, dto.lessonId, correct, total);
+      await this.skills.updateMasteryFromAnswers(dto.childId, dto.lessonId, dto.answers);
       const streak = await this.streaks.touch(dto.childId);
       await this.recommendations.markLessonDone(dto.childId, dto.lessonId);
       return this.gamification.applyActivity(dto.childId, {
