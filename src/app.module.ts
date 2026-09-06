@@ -34,6 +34,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { SkillsModule } from './modules/skills/skills.module';
 import { SkillPracticeModule } from './modules/skill-practice/skill-practice.module';
+import { MillionaireModule } from './modules/millionaire/millionaire.module';
 import { PlacementModule } from './modules/placement/placement.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { BatchModule } from './modules/batch/batch.module';
@@ -87,6 +88,7 @@ import { BatchModule } from './modules/batch/batch.module';
     GamificationModule,
     SkillsModule,
     SkillPracticeModule,
+    MillionaireModule,
     PlacementModule,
     ReportsModule,
     BatchModule,

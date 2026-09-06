@@ -46,6 +46,14 @@ export class SkillQuestion extends BaseEntityCommon {
   @Column({ type: 'text' })
   explanation: string;
 
+  /**
+   * Bậc khó tinh 1–15, tính bằng `scripts/score-difficulty.cjs`.
+   * Nhãn `difficulty` chỉ có 3 bậc, không đủ để xếp 15 mốc leo thang của game
+   * "Ai là triệu phú" — mốc 6 sẽ dễ hơn mốc 3 nếu chỉ dựa vào nhãn.
+   */
+  @Column({ type: 'tinyint', unsigned: true, default: 0 })
+  difficultyScore: number;
+
   /** Nhóm câu sinh đôi — bốc câu khác cùng nhóm để bé thử lại. */
   @Index()
   @Column({ length: 120 })
