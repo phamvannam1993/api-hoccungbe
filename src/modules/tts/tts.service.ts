@@ -325,7 +325,11 @@ export class TtsService {
     rate = '+0%',
     pitch = '+0Hz',
   ): Promise<{ audioUrl: string; durationMs: number | null; mimeType: string } | null> {
-    const text = this.canonicalTts(rawText);
+    // preprocessTTS PHẢI chạy ở đây y như lúc sinh và như lookupCachedMany.
+    // Thiếu nó thì "12 tháng trong năm" (lúc sinh đã thành "mười hai tháng…")
+    // ra khoá khác và trang web tưởng chưa có audio — đúng lỗi đã gặp: cùng
+    // một câu mà tra hàng loạt thì thấy, tra lẻ lại không.
+    const text = this.canonicalTts(preprocessTTS(rawText));
     if (!text) return null;
     // Tra theo nhiều dạng viết của cùng một câu: khoá băm từng chữ một nên
     // "Xin chào." và "xin chào" ra hai khoá khác nhau, dù đọc lên y hệt. Không
