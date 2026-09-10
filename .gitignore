@@ -54,3 +54,9 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# thư mục biên dịch tạm của scripts/sinh-audio-tu-danh-sach.cjs
+.tmp-tts
+.tmp-kiem-tts
+.tmp-xoa-tts
+.tmp-s3
