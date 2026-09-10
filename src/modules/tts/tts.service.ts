@@ -92,6 +92,74 @@ export class TtsService {
     return { course: slug, totalTexts: texts.length, alreadyCached, started: true };
   }
 
+  /**
+   * Sinh audio cho một DANH SÁCH TEXT bất kỳ (không gắn với khóa học nào).
+   * Dùng cho Vòng tròn âm vần: text ở đó không nằm trong bảng `quizzes` mà sinh
+   * ra từ dữ liệu tĩnh của frontend (tên âm, từ, từng bước đánh vần).
+   *
+   * Vẫn đi qua đúng pipeline như `generateForCourse`: chuẩn hoá text → gọi TTS
+   * cục bộ → tải mp3 → đẩy lên S3 → ghi `tts_cache`. Nhờ vậy `GET /tts/cached`
+   * tra được, và cùng một câu chữ thì dùng chung một file với phần bài tập.
+   */
+  async generateForTexts(rawTexts: string[], nhan = 'texts'): Promise<{
+    nhan: string; totalTexts: number; alreadyCached: number; started: boolean;
+  }> {
+    if (!Array.isArray(rawTexts) || !rawTexts.length) {
+      throw new BadRequestException('texts (mảng câu chữ) là bắt buộc');
+    }
+
+    const seen = new Set<string>();
+    const texts: string[] = [];
+    for (const raw of rawTexts) {
+      const t = this.canonicalTts(preprocessTTS(String(raw || '')));
+      if (t && !seen.has(t)) { seen.add(t); texts.push(t); }
+    }
+    if (!texts.length) throw new BadRequestException('Không có câu chữ hợp lệ');
+
+    let alreadyCached = 0;
+    const keys = texts.map((t) => this.buildCacheKey(t, 'vi', '+0%', '+0Hz'));
+    const [{ c }] = await this.ttsCacheRepo.manager.query(
+      `SELECT COUNT(*) c FROM tts_cache WHERE cacheKey IN (${keys.map(() => '?').join(',')})`,
+      keys,
+    );
+    alreadyCached = Number(c);
+
+    if (!this.generating.has(nhan)) {
+      this.generating.add(nhan);
+      this.runGeneration(nhan, texts)
+        .catch((e) => this.logger.error(`[TTS gen ${nhan}] ${e.message}`))
+        .finally(() => this.generating.delete(nhan));
+    }
+    return { nhan, totalTexts: texts.length, alreadyCached, started: true };
+  }
+
+  /**
+   * Tra HÀNG LOẠT: trả về { text gốc → URL audio } cho những text đã có sẵn.
+   * Trang Vòng tròn âm vần cần vài chục đoạn cùng lúc (từ + từng bước đánh vần);
+   * hỏi từng đoạn một là vài chục request cho mỗi lần đổi vòng.
+   */
+  async lookupCachedMany(rawTexts: string[], voice = 'vi'): Promise<Record<string, string>> {
+    if (!Array.isArray(rawTexts) || !rawTexts.length) return {};
+    const theoKey = new Map<string, string>();     // cacheKey → text gốc
+    for (const raw of rawTexts.slice(0, 500)) {
+      const t = this.canonicalTts(preprocessTTS(String(raw || '')));
+      if (!t) continue;
+      theoKey.set(this.buildCacheKey(t, voice, '+0%', '+0Hz'), String(raw));
+    }
+    if (!theoKey.size) return {};
+    const keys = [...theoKey.keys()];
+    const rows: { cacheKey: string; audioUrl: string }[] = await this.ttsCacheRepo.manager.query(
+      `SELECT cacheKey, audioUrl FROM tts_cache WHERE cacheKey IN (${keys.map(() => '?').join(',')})`,
+      keys,
+    );
+    const ra: Record<string, string> = {};
+    for (const r of rows) {
+      const goc = theoKey.get(r.cacheKey);
+      if (goc) ra[goc] = r.audioUrl;
+    }
+    return ra;
+  }
+
   private async runGeneration(slug: string, texts: string[]): Promise<void> {
     const CONCURRENCY = Number(this.configService.get('TTS_GEN_CONCURRENCY') || 5);
     let idx = 0, made = 0, skip = 0, fail = 0;
@@ -122,6 +190,74 @@ export class TtsService {
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, texts.length) }, worker));
     this.logger.log(`[TTS gen ${slug}] HOÀN TẤT: mới ${made}, bỏ qua ${skip}, lỗi ${fail}`);
+  }
+
+  /* ─────────── Quản lý kho giọng đọc (trang admin) ─────────── */
+
+  /** Liệt kê bản ghi giọng đọc, lọc theo chữ. */
+  async adminList(q = '', limit = 60, offset = 0) {
+    const dieuKien = q.trim() ? 'WHERE text LIKE ?' : '';
+    const tham = q.trim() ? [`%${q.trim()}%`] : [];
+    const dem = await this.ttsCacheRepo.manager.query(
+      `SELECT COUNT(*) tong FROM tts_cache ${dieuKien}`, tham,
+    );
+    const tong = Number(dem?.[0]?.tong ?? 0);
+    // LIMIT/OFFSET ghép thẳng vào chuỗi: MySQL không nhận tham số ở vị trí này
+    // trong câu lệnh chuẩn bị sẵn. Ép về số nguyên nên không có chỗ tiêm SQL.
+    const lim = Math.max(1, Math.min(200, Math.floor(Number(limit) || 60)));
+    const off = Math.max(0, Math.floor(Number(offset) || 0));
+    const rows = await this.ttsCacheRepo.manager.query(
+      `SELECT cacheKey, text, audioUrl, durationMs, fileSize, updatedAt
+         FROM tts_cache ${dieuKien}
+        ORDER BY updatedAt DESC LIMIT ${lim} OFFSET ${off}`,
+      tham,
+    );
+    return { tong, rows };
+  }
+
+  /**
+   * Thay audio của một bản ghi bằng tệp admin tự tải lên.
+   *
+   * KHÔNG đổi `cacheKey`: khoá tính từ nội dung chữ, mà chữ không đổi — chỉ
+   * tiếng đọc đổi. Đổi khoá là trang web mất dấu bản ghi này.
+   */
+  async adminThayAudio(cacheKey: string, audioUrl: string) {
+    if (!audioUrl || !/^https?:\/\//i.test(audioUrl)) {
+      throw new BadRequestException('audioUrl không hợp lệ');
+    }
+    const row = await this.ttsCacheRepo.findOne({ where: { cacheKey } });
+    if (!row) throw new BadRequestException('Không có bản ghi với khoá này');
+    const cu = row.audioUrl;
+    row.audioUrl = audioUrl;
+    row.storage = 's3';
+    await this.ttsCacheRepo.save(row);
+    // Xoá tệp cũ để khỏi tích rác trên S3; hỏng cũng không sao, bản ghi đã đúng.
+    if (cu && cu !== audioUrl) this.s3.deleteByUrl(cu).catch(() => undefined);
+    return { cacheKey, audioUrl };
+  }
+
+  /** Xoá bản ghi + tệp trên S3. Lần sau trang web sẽ dùng giọng dự phòng. */
+  async adminXoa(cacheKey: string) {
+    const row = await this.ttsCacheRepo.findOne({ where: { cacheKey } });
+    if (!row) return { removed: false };
+    if (row.audioUrl) await this.s3.deleteByUrl(row.audioUrl).catch(() => undefined);
+    await this.ttsCacheRepo.delete({ cacheKey });
+    return { removed: true };
+  }
+
+  /** Đọc lại một đoạn bằng máy chủ giọng đọc rồi thay tệp cũ. */
+  async adminSinhLai(cacheKey: string) {
+    const row = await this.ttsCacheRepo.findOne({ where: { cacheKey } });
+    if (!row) throw new BadRequestException('Không có bản ghi với khoá này');
+    const { buf, providerUrl, durationMs, filename } = await this.fetchLocalTts(row.text);
+    const audioUrl = await this.s3.uploadAudio(
+      { buffer: buf, originalname: filename, mimetype: 'audio/mpeg' }, 'tts',
+    );
+    const cu = row.audioUrl;
+    Object.assign(row, { audioUrl, providerUrl, filename, durationMs, fileSize: buf.length, storage: 's3' });
+    await this.ttsCacheRepo.save(row);
+    if (cu && cu !== audioUrl) this.s3.deleteByUrl(cu).catch(() => undefined);
+    return { cacheKey, audioUrl, durationMs };
   }
 
   private async fetchLocalTts(text: string): Promise<{ buf: Buffer; providerUrl: string; durationMs: number; filename: string }> {
@@ -159,6 +295,22 @@ export class TtsService {
       .trim();
   }
 
+  /**
+   * Các dạng viết khác của cùng một câu, để tra cache nới tay hơn:
+   * bỏ dấu câu ở hai đầu, và bản viết thường.
+   *
+   * KHÔNG bỏ dấu tiếng Việt — "má" và "mà" đọc khác nhau, gộp lại là phát sai.
+   */
+  private bienTheText(text: string): string[] {
+    const ra: string[] = [];
+    const goc = text.trim();
+    const sach = goc.replace(/^[\s"'“”‘’(\[]+|[\s"'“”‘’)\].,!?;:…]+$/g, '').trim();
+    for (const t of [sach, goc.toLowerCase(), sach.toLowerCase()]) {
+      if (t && t !== goc && !ra.includes(t)) ra.push(t);
+    }
+    return ra;
+  }
+
   private buildCacheKey(text: string, voice: string, rate: string, pitch: string): string {
     return crypto.createHash('sha256').update(`${voice}|${rate}|${pitch}|${text}`).digest('hex');
   }
@@ -175,8 +327,21 @@ export class TtsService {
   ): Promise<{ audioUrl: string; durationMs: number | null; mimeType: string } | null> {
     const text = this.canonicalTts(rawText);
     if (!text) return null;
+    // Tra theo nhiều dạng viết của cùng một câu: khoá băm từng chữ một nên
+    // "Xin chào." và "xin chào" ra hai khoá khác nhau, dù đọc lên y hệt. Không
+    // nới ra thế này thì trang web trượt cache và rơi về giọng Google.
     const cacheKey = this.buildCacheKey(text, voice, rate, pitch);
-    const row = await this.ttsCacheRepo.findOne({ where: { cacheKey } });
+    const keys = [cacheKey];
+    for (const bien of this.bienTheText(text)) {
+      const k = this.buildCacheKey(bien, voice, rate, pitch);
+      if (!keys.includes(k)) keys.push(k);
+    }
+    const found = await this.ttsCacheRepo
+      .createQueryBuilder('c')
+      .where('c.cacheKey IN (:...keys)', { keys })
+      .getMany();
+    // Giữ đúng thứ tự ưu tiên: dạng viết y nguyên trước, dạng nới lỏng sau.
+    const row = keys.map((k) => found.find((r) => r.cacheKey === k)).find(Boolean);
     if (!row) return null;
     // Đếm lượt dùng lại (fire-and-forget, không chặn response).
     this.ttsCacheRepo
