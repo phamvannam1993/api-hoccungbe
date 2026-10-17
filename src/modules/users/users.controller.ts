@@ -32,6 +32,21 @@ import { User } from './entities/user.entity';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /* Bỏ `passwordHash` trước khi trả ra.
+   *
+   * `findAll`/`findOne` trả nguyên thực thể TypeORM, nghĩa là băm bcrypt mật khẩu
+   * của cả 178 người dùng đi thẳng vào trình duyệt admin, rồi nằm lại trong DevTools,
+   * trong bộ nhớ đệm, trong log của mọi proxy trên đường. Guard admin chặn được người
+   * lạ, nhưng băm mật khẩu thì không có lý do gì rời khỏi máy chủ.
+   *
+   * Lọc ở ĐÂY chứ không ở service: `update()` đọc `user.passwordHash` làm giá trị giữ
+   * nguyên khi không đổi mật khẩu, nên service vẫn phải lấy được cột ấy. */
+  private congKhai(u: User): Omit<User, 'passwordHash'> {
+    const ra: Partial<User> = { ...u };
+    delete ra.passwordHash;
+    return ra as Omit<User, 'passwordHash'>;
+  }
+
   @Post()
   @ApiOperation({ summary: 'Tạo người dùng mới' })
   @ApiResponse({
@@ -43,8 +58,8 @@ export class UsersController {
     status: 400,
     description: 'Dữ liệu không hợp lệ hoặc email đã tồn tại',
   })
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    return this.congKhai(await this.usersService.create(createUserDto));
   }
 
   @Get()
@@ -54,8 +69,8 @@ export class UsersController {
     description: 'Lấy danh sách user thành công',
     type: [User],
   })
-  findAll() {
-    return this.usersService.findAll();
+  async findAll() {
+    return (await this.usersService.findAll()).map((u) => this.congKhai(u));
   }
 
   @Get('email/:email')
@@ -74,8 +89,9 @@ export class UsersController {
     status: 404,
     description: 'Không tìm thấy user',
   })
-  findByEmail(@Param('email') email: string) {
-    return this.usersService.findByEmail(email);
+  async findByEmail(@Param('email') email: string) {
+    const u = await this.usersService.findByEmail(email);
+    return u ? this.congKhai(u) : null;
   }
 
   @Get(':id')
@@ -94,8 +110,8 @@ export class UsersController {
     status: 404,
     description: 'User không tồn tại',
   })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.congKhai(await this.usersService.findOne(id));
   }
 
   @Patch(':id')
@@ -118,11 +134,11 @@ export class UsersController {
     status: 404,
     description: 'User không tồn tại',
   })
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return this.usersService.update(id, updateUserDto);
+    return this.congKhai(await this.usersService.update(id, updateUserDto));
   }
 
   @Delete(':id')

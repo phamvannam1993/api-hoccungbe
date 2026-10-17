@@ -15,6 +15,14 @@ export class TtsCache extends BaseEntityCommon {
   @Column({ type: 'text' })
   text: string;
 
+  /** Nhãn nguồn: 'iq' (toán IQ), 'quiz:<slug>' (bài tập của một khoá), 'am-van'…
+   *  Trang quản lý audio lọc theo cột này; thiếu nó thì phải đoán theo nội dung câu
+   *  chữ, mà một câu có thể trùng giữa hai phần. Bản ghi cũ là NULL cho tới khi chạy
+   *  `src/database/add-tts-nguon-col.ts`. */
+  @Index()
+  @Column({ length: 64, nullable: true })
+  nguon: string;
+
   @Index()
   @Column({ length: 64, default: 'vi' })
   voice: string;

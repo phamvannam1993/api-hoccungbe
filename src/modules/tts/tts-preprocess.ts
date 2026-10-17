@@ -59,6 +59,41 @@ export function preprocessTTS(text: string): string {
     .replace(/\?/g, '')
     .replace(/(?<!\d)(\d)[-−–](\d)/g, '$1 đến $2')
     .replace(/[+＋]/g, ' cộng ')
+    /* ĐƠN VỊ ĐO VIẾT TẮT → ĐỌC THÀNH CHỮ.
+     *
+     * Soát 1.682 câu hỏi của khoá IQ ngày 17/10/2026: còn 110 chỗ "cm", 55 "kg",
+     * 20 "dm", cùng km/mm/ml/cm². Để nguyên thì máy đánh vần từng chữ cái
+     * ("xê em"), nghe không ra đơn vị nào.
+     *
+     * Viết LIỀN, không gạch nối: chính dấu gạch trong "xăng-ti-mét" là thứ đã bị
+     * đọc thành "trừ" ở luật ngay dưới đây.
+     *
+     * Chỉ đổi khi đứng SAU MỘT CON SỐ (`(?<=\d\s?)`) và không dính chữ cái khác:
+     * "5 cm" là đơn vị, còn "cm" trong một từ bất kỳ thì không. Thiếu chốt này thì
+     * "g" nuốt mọi chữ g đứng lẻ, "l" nuốt mọi chữ l. */
+    .replace(/(?<=\d\s{0,2})(cm|dm|mm|km|kg|ml|m)(²|2)?(?![\p{L}\d])/gu, (_m, dv: string, mu?: string) => {
+      const ten: Record<string, string> = {
+        cm: 'xăng ti mét', dm: 'đề xi mét', mm: 'mi li mét', km: 'ki lô mét',
+        kg: 'ki lô gam', ml: 'mi li lít', m: 'mét',
+      };
+      return ` ${ten[dv.toLowerCase()] ?? dv}${mu ? ' vuông' : ''} `;
+    })
+    /* PHÂN SỐ "1/4" → "một phần tư". Soát thấy 2 chỗ ra "một/bốn", máy đọc dấu gạch
+     * chéo thành "gạch chéo" hoặc nuốt mất. Đặt TRƯỚC luật chia để "/" của phân số
+     * không bị hiểu thành phép chia. */
+    .replace(/(?<![\d/])(\d{1,2})\s*\/\s*(\d{1,2})(?![\d/])/g, (_m, a: string, b: string) => {
+      const mau: Record<string, string> = { '2': 'hai', '3': 'ba', '4': 'tư', '5': 'năm', '6': 'sáu', '8': 'tám', '10': 'mười' };
+      return ` ${numToVi(parseInt(a))} phần ${mau[b] ?? numToVi(parseInt(b))} `;
+    })
+    /* GẠCH NỐI GIỮA HAI CHỮ CÁI LÀ TỪ GHÉP, KHÔNG PHẢI PHÉP TRỪ.
+     *
+     * Dòng dưới đổi MỌI dấu gạch thành " trừ " — đúng cho "9-4" nhưng sai cho
+     * "xăng-ti-mét", máy đọc thành "xăng trừ ti trừ mét" (thầy nghe thấy 17/10/2026).
+     * Cùng họ: "ki-lô-gam", "mi-li-mét", "ki-lô-mét", "A-ra-bi-ca".
+     *
+     * Đổi thành KHOẢNG TRẮNG chứ không xoá hẳn: "xăngtimét" dính liền thì máy đọc
+     * cũng sai. Phải chạy TRƯỚC luật phép trừ, nếu không chẳng còn gạch nào để xét. */
+    .replace(/(?<=\p{L})[-−–](?=\p{L})/gu, ' ')
     .replace(/[-−–]/g, ' trừ ')
     .replace(/[×✕*＊·]/g, ' nhân ')
     .replace(/(?<=\w)\s+:\s+(?=\w)/g, ' chia ')
