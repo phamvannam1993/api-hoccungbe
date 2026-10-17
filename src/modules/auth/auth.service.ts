@@ -215,6 +215,15 @@ import {
         throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
       }
   
+      /* Ghi mốc đăng nhập. Hỏng thì KHÔNG chặn đăng nhập — vào được là việc chính,
+         mốc thời gian là việc phụ. Nhưng phải ghi lỗi ra: nuốt lặng lẽ thì cột lại
+         rỗng mà không ai biết vì sao. */
+      await this.usersService.ghiDangNhap(user.id).catch((e: unknown) => {
+        this.logger.error(
+          `Không ghi được lastLoginAt cho user ${user.id}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      });
+  
       const payload = {
         sub: user.id,
         email: user.email,

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { Notification } from './entities/notification.entity';
@@ -41,8 +41,15 @@ export class NotificationsService {
     return this.repo.count({ where: { userId, readAt: IsNull() } });
   }
 
-  async markRead(id: number) {
-    await this.repo.update(id, { readAt: new Date() });
+  /* Đánh dấu đã đọc, có kiểm chủ sở hữu.
+   *
+   * Ghi theo cả `id` LẪN `userId` trong một câu lệnh: kiểm trước rồi ghi sau thì
+   * giữa hai bước vẫn có khe. Không trúng dòng nào thì báo không tìm thấy — không
+   * nói rõ là "không có" hay "của người khác", vì nói rõ cũng là một kiểu rò rỉ. */
+  async markRead(id: number, userId?: number, laAdmin = false) {
+    const dieuKien = laAdmin || userId === undefined ? { id } : { id, userId };
+    const kq = await this.repo.update(dieuKien, { readAt: new Date() });
+    if (!kq.affected) throw new NotFoundException('Không tìm thấy thông báo');
     return this.repo.findOne({ where: { id } });
   }
 

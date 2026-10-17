@@ -40,6 +40,9 @@ export class TtsService {
   /** Cờ tránh chạy 2 job sinh audio cho cùng 1 khóa cùng lúc. */
   private readonly generating = new Set<string>();
 
+  /** Việc còn chờ của từng nhãn, cho yêu cầu đến lúc nhãn ấy đang chạy dở. */
+  private readonly hangCho = new Map<string, string[]>();
+
   /**
    * Sinh (pre-generate) audio TTS cho TOÀN BỘ câu hỏi của một MÔN HỌC/KHÓA HỌC (theo slug),
    * lưu file lên S3 và ghi vào tts_cache. Chạy nền (không chặn request), trả về ngay số việc.
@@ -84,7 +87,7 @@ export class TtsService {
     if (!this.generating.has(slug)) {
       this.generating.add(slug);
       // Fire-and-forget: chạy nền, không chặn HTTP response.
-      this.runGeneration(slug, texts)
+      this.runGeneration(slug, texts, `quiz:${slug}`)
         .catch((e) => this.logger.error(`[TTS gen ${slug}] ${e.message}`))
         .finally(() => this.generating.delete(slug));
     }
@@ -102,7 +105,7 @@ export class TtsService {
    * tra được, và cùng một câu chữ thì dùng chung một file với phần bài tập.
    */
   async generateForTexts(rawTexts: string[], nhan = 'texts'): Promise<{
-    nhan: string; totalTexts: number; alreadyCached: number; started: boolean;
+    nhan: string; totalTexts: number; alreadyCached: number; started: boolean; xepHang: number;
   }> {
     if (!Array.isArray(rawTexts) || !rawTexts.length) {
       throw new BadRequestException('texts (mảng câu chữ) là bắt buộc');
@@ -124,13 +127,28 @@ export class TtsService {
     );
     alreadyCached = Number(c);
 
-    if (!this.generating.has(nhan)) {
+    /* XẾP HÀNG, KHÔNG VỨT.
+     *
+     * Bản trước: nhãn nào đang chạy thì mọi yêu cầu sau cho CÙNG nhãn bị bỏ lặng lẽ
+     * — mà vẫn trả `started: true`. Hôm nay gửi 3.544 mẩu thành 12 lô cách nhau 1,5
+     * giây: lô đầu chạy, 11 lô sau rơi hết, script báo "đã gửi 3544", kho chỉ có đúng
+     * 300 = tròn một lô. Mất việc mà không ai biết là kiểu hỏng tệ nhất: không log,
+     * không lỗi, chỉ có con số thiếu.
+     *
+     * Nay lô sau nối vào hàng chờ của lô trước, và số trả về nói thật. */
+    const cho = this.hangCho.get(nhan) ?? [];
+    cho.push(...texts);
+    this.hangCho.set(nhan, cho);
+
+    const dangChay = this.generating.has(nhan);
+    if (!dangChay) {
       this.generating.add(nhan);
-      this.runGeneration(nhan, texts)
-        .catch((e) => this.logger.error(`[TTS gen ${nhan}] ${e.message}`))
-        .finally(() => this.generating.delete(nhan));
+      void this.chayHangCho(nhan);
     }
-    return { nhan, totalTexts: texts.length, alreadyCached, started: true };
+    return {
+      nhan, totalTexts: texts.length, alreadyCached,
+      started: !dangChay, xepHang: cho.length,
+    };
   }
 
   /**
@@ -160,7 +178,29 @@ export class TtsService {
     return ra;
   }
 
-  private async runGeneration(slug: string, texts: string[]): Promise<void> {
+  /* Rút cạn hàng chờ của một nhãn, lặp đến khi hết.
+   *
+   * Vòng `for(;;)` thay vì chạy một lần: trong lúc `runGeneration` chạy, yêu cầu mới
+   * vẫn dồn vào `hangCho`, nên hết lô này phải ngoảnh lại xem có lô mới không.
+   *
+   * Giữa lúc thấy hàng rỗng và lúc xoá cờ KHÔNG có `await` nào, nên không thể có
+   * yêu cầu nào chen vào giữa rồi mất hút. */
+  private async chayHangCho(nhan: string): Promise<void> {
+    try {
+      for (;;) {
+        const q = this.hangCho.get(nhan);
+        if (!q || !q.length) break;
+        const lo = q.splice(0, q.length);
+        await this.runGeneration(nhan, lo, nhan)
+          .catch((e) => this.logger.error(`[TTS gen ${nhan}] ${e instanceof Error ? e.message : String(e)}`));
+      }
+    } finally {
+      this.hangCho.delete(nhan);
+      this.generating.delete(nhan);
+    }
+  }
+
+  private async runGeneration(slug: string, texts: string[], nguon?: string): Promise<void> {
     const CONCURRENCY = Number(this.configService.get('TTS_GEN_CONCURRENCY') || 5);
     let idx = 0, made = 0, skip = 0, fail = 0;
     const worker = async () => {
@@ -170,18 +210,30 @@ export class TtsService {
         try {
           const exists = await this.ttsCacheRepo.findOne({ where: { cacheKey }, select: ['id'] });
           if (exists) { skip++; continue; }
-          const { buf, providerUrl, durationMs, filename } = await this.fetchLocalTts(text);
+          const { buf, providerUrl, durationMs, filename, mimeType } = await this.fetchLocalTts(text);
           const audioUrl = await this.s3.uploadAudio(
-            { buffer: buf, originalname: filename, mimetype: 'audio/mpeg' }, 'tts',
+            { buffer: buf, originalname: filename, mimetype: mimeType }, 'tts',
           );
           await this.ttsCacheRepo.save(this.ttsCacheRepo.create({
             cacheKey, text, voice: 'vi', rate: '+0%', pitch: '+0Hz',
-            audioUrl, providerUrl, filename, mimeType: 'audio/mpeg',
+            audioUrl, providerUrl, filename, mimeType,
             fileSize: buf.length, durationMs, storage: 's3',
+            ...(nguon ? { nguon } : {}),
           }));
           made++;
-        } catch {
+        } catch (e) {
           fail++;
+          /* GHI LỖI ĐẦU TIÊN, không nuốt hết.
+           *
+           * Bản trước `catch { fail++ }` không để lại dấu vết nào: hôm nay máy chủ TTS
+           * đổi kiểu đáp (trả thẳng tệp m4a thay vì JSON), 10.438 lượt đều ném lỗi, và
+           * log cuối chỉ nói "lỗi 10438" mà không nói VÌ SAO — phải dựng lại cả chuỗi
+           * gọi bằng tay mới tìm ra. Một dòng lỗi đầu tiên là đủ để lần sau khỏi mò.
+           *
+           * Chỉ ghi lần đầu: mười nghìn dòng giống hệt nhau thì che mất mọi thứ khác. */
+          if (fail === 1) {
+            this.logger.error(`[TTS gen ${slug}] lỗi đầu tiên: ${e instanceof Error ? e.message : String(e)}`);
+          }
         }
         if ((made + skip + fail) % 50 === 0) {
           this.logger.log(`[TTS gen ${slug}] ${made + skip + fail}/${texts.length} (mới ${made}, bỏ qua ${skip}, lỗi ${fail})`);
@@ -195,9 +247,15 @@ export class TtsService {
   /* ─────────── Quản lý kho giọng đọc (trang admin) ─────────── */
 
   /** Liệt kê bản ghi giọng đọc, lọc theo chữ. */
-  async adminList(q = '', limit = 60, offset = 0) {
-    const dieuKien = q.trim() ? 'WHERE text LIKE ?' : '';
-    const tham = q.trim() ? [`%${q.trim()}%`] : [];
+  async adminList(q = '', limit = 60, offset = 0, nguon = '') {
+    /* Hai bộ lọc ghép bằng AND, dựng cùng một mảng tham số cho cả câu đếm lẫn câu lấy
+     * — hai câu lệch nhau là tổng số một đằng, danh sách một nẻo. */
+    const menh: string[] = [];
+    const tham: unknown[] = [];
+    if (q.trim()) { menh.push('text LIKE ?'); tham.push(`%${q.trim()}%`); }
+    if (nguon.trim()) { menh.push('nguon = ?'); tham.push(nguon.trim()); }
+    const dieuKien = menh.length ? `WHERE ${menh.join(' AND ')}` : '';
+
     const dem = await this.ttsCacheRepo.manager.query(
       `SELECT COUNT(*) tong FROM tts_cache ${dieuKien}`, tham,
     );
@@ -207,7 +265,7 @@ export class TtsService {
     const lim = Math.max(1, Math.min(200, Math.floor(Number(limit) || 60)));
     const off = Math.max(0, Math.floor(Number(offset) || 0));
     const rows = await this.ttsCacheRepo.manager.query(
-      `SELECT cacheKey, text, audioUrl, durationMs, fileSize, updatedAt
+      `SELECT cacheKey, text, nguon, audioUrl, durationMs, fileSize, updatedAt
          FROM tts_cache ${dieuKien}
         ORDER BY updatedAt DESC LIMIT ${lim} OFFSET ${off}`,
       tham,
@@ -260,17 +318,56 @@ export class TtsService {
     return { cacheKey, audioUrl, durationMs };
   }
 
-  private async fetchLocalTts(text: string): Promise<{ buf: Buffer; providerUrl: string; durationMs: number; filename: string }> {
+  private async fetchLocalTts(text: string): Promise<{ buf: Buffer; providerUrl: string; durationMs: number; filename: string; mimeType: string }> {
     const base = this.configService.get<string>('TTS_LOCAL_URL') || 'http://localhost:8000/api/tts';
-    const r = await fetch(`${base}?text=${encodeURIComponent(text)}`);
+    const url = `${base}?text=${encodeURIComponent(text)}`;
+    const r = await fetch(url);
     if (!r.ok) throw new Error(`TTS ${r.status}`);
-    const j: any = await r.json();
-    const providerUrl: string = j.url || j.audio_url;
+
+    /* MÁY CHỦ TTS TRẢ VỀ HAI KIỂU — phải nhận cả hai.
+     *
+     *   A. tệp âm thanh THẲNG   (content-type: audio/*, như bản chạy ở localhost:8000
+     *                            hôm nay: audio/mp4, filename "tts.m4a")
+     *   B. JSON { url | audio_url, duration }  rồi tải tệp ở URL ấy
+     *
+     * Bản trước chỉ biết kiểu B. Gặp kiểu A nó gọi `r.json()` trên luồng byte của tệp
+     * m4a và ném "Unexpected token" — mà `runGeneration()` bắt lỗi bằng `catch { fail++ }`
+     * nên HỎNG IM LẶNG: báo đã khởi chạy 10.438 đoạn, chạy xong không ghi nổi một dòng,
+     * không một dòng log nào nói vì sao. Đo 17/10/2026.
+     *
+     * Đọc content-type để rẽ, không đoán theo tên endpoint. */
+    const kieu = (r.headers.get('content-type') || '').toLowerCase();
+    if (kieu.startsWith('audio/')) {
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (!buf.length) throw new Error('TTS trả về tệp rỗng');
+      /* Tên tệp lấy từ `content-disposition` nếu có; không có thì suy từ content-type.
+       * Đuôi phải đúng định dạng thật — đặt ".mp3" cho một tệp m4a thì trình duyệt phát
+       * được nhưng công cụ khác đọc sai. */
+      const cd = r.headers.get('content-disposition') || '';
+      const tenTuCd = /filename="?([^";]+)"?/i.exec(cd)?.[1];
+      const duoi = kieu.includes('mp4') || kieu.includes('m4a') ? 'm4a' : kieu.includes('wav') ? 'wav' : 'mp3';
+      return {
+        buf,
+        providerUrl: url,
+        durationMs: 0, // máy chủ không báo độ dài ở kiểu này
+        filename: tenTuCd || `tts.${duoi}`,
+        mimeType: kieu.split(';')[0]!.trim(),
+      };
+    }
+
+    const j = (await r.json()) as { url?: string; audio_url?: string; duration?: number };
+    const providerUrl = j.url || j.audio_url;
     if (!providerUrl) throw new Error('TTS thiếu url');
     const ar = await fetch(providerUrl);
     if (!ar.ok) throw new Error(`tải mp3 ${ar.status}`);
     const buf = Buffer.from(await ar.arrayBuffer());
-    return { buf, providerUrl, durationMs: Math.round((j.duration || 0) * 1000), filename: providerUrl.split('/').pop() || 'tts.mp3' };
+    return {
+      buf,
+      providerUrl,
+      durationMs: Math.round((j.duration || 0) * 1000),
+      filename: providerUrl.split('/').pop() || 'tts.mp3',
+      mimeType: (ar.headers.get('content-type') || 'audio/mpeg').split(';')[0]!.trim(),
+    };
   }
 
   /**

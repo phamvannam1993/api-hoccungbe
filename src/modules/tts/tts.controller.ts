@@ -111,8 +111,9 @@ export class TtsController {
     @Query('q') q?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('nguon') nguon?: string,
   ) {
-    return this.ttsService.adminList(q || '', Math.min(Number(limit) || 60, 200), Number(offset) || 0);
+    return this.ttsService.adminList(q || '', Math.min(Number(limit) || 60, 200), Number(offset) || 0, nguon || '');
   }
 
   @Post('admin/replace')

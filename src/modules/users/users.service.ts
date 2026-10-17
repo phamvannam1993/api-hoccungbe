@@ -40,6 +40,18 @@ export class UsersService {
     return await this.usersRepository.save(user);
   }
 
+  /* Ghi mốc đăng nhập gần nhất.
+   *
+   * Cột `lastLoginAt` có trong bảng từ đầu và trang admin đã có sẵn cột "Đăng nhập
+   * cuối", nhưng KHÔNG chỗ nào ghi vào — 178/178 người dùng đều rỗng, nên ô ấy luôn
+   * hiện "-". Cột có sẵn mà không ai ghi thì nhìn y như "chưa ai đăng nhập bao giờ".
+   *
+   * Dùng `update` thẳng chứ không `save`: chỉ chạm một cột, không kéo cả thực thể
+   * lẫn quan hệ lên rồi ghi đè. */
+  async ghiDangNhap(id: number): Promise<void> {
+    await this.usersRepository.update(id, { lastLoginAt: new Date() });
+  }
+
   async findAll(): Promise<User[]> {
     return await this.usersRepository.find({
       relations: ['children', 'subscriptions', 'createdCourses'],
