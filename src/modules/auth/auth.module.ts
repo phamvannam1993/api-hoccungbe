@@ -6,11 +6,16 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { MailModule } from '../mail/mail.module';
+import { PasswordReset } from './entities/password-reset.entity';
 import type { StringValue } from 'ms';
 
 @Module({
   imports: [
     UsersModule,
+    MailModule,
+    TypeOrmModule.forFeature([PasswordReset]),
     PassportModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -20,7 +25,8 @@ import type { StringValue } from 'ms';
         secret: configService.get<string>('JWT_SECRET') || 'supersecretkey',
         signOptions: {
           expiresIn:
-            (configService.get<string>('JWT_EXPIRES_IN') as StringValue) || '30d',
+            (configService.get<string>('JWT_EXPIRES_IN') as StringValue) ||
+            '30d',
         },
       }),
     }),
