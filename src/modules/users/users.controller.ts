@@ -7,14 +7,27 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { AdminGuard } from '../../common/guards/admin.guard';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 
 @ApiTags('Users')
+@ApiBearerAuth()
+// Quản lý người dùng chỉ dành cho admin (trước đây không có guard: ai cũng xem email
+// hoặc tự đổi role thành admin qua PATCH /users/:id).
+@UseGuards(AuthGuard('jwt'), AdminGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
