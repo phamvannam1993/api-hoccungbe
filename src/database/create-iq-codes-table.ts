@@ -65,6 +65,20 @@ CREATE TABLE IF NOT EXISTS iq_orders (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
+/** Cột payOS của iq_orders (thêm nếu thiếu). */
+const ORDER_COLUMNS: [string, string][] = [
+  [
+    'payosOrderCode',
+    'ADD COLUMN payosOrderCode BIGINT NULL, ADD UNIQUE KEY UQ_iq_orders_payos (payosOrderCode)',
+  ],
+  ['payosAmount', 'ADD COLUMN payosAmount INT UNSIGNED NULL'],
+  ['checkoutUrl', 'ADD COLUMN checkoutUrl TEXT NULL'],
+  ['qrCode', 'ADD COLUMN qrCode TEXT NULL'],
+  ['payosExpiresAt', 'ADD COLUMN payosExpiresAt DATETIME NULL'],
+  ['paidAt', 'ADD COLUMN paidAt DATETIME NULL'],
+  ['payRef', 'ADD COLUMN payRef VARCHAR(64) NULL'],
+];
+
 /** Bảng tạo từ bản cũ chưa có cột gắn tài khoản → thêm vào. */
 const ADD_COLUMNS: [string, string][] = [
   [
@@ -104,6 +118,16 @@ async function main() {
   console.log('✓ Đã tạo/đảm bảo bảng iq_entitlements.');
 
   await conn.query(ORDERS);
+  for (const [column, alter] of ORDER_COLUMNS) {
+    const [rows] = await conn.query(
+      `SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'iq_orders' AND COLUMN_NAME = ?`,
+      [database, column],
+    );
+    if ((rows as unknown[]).length === 0) {
+      await conn.query(`ALTER TABLE iq_orders ${alter}`);
+      console.log(`  + thêm cột iq_orders.${column}`);
+    }
+  }
   console.log('✓ Đã tạo/đảm bảo bảng iq_orders.');
   await conn.end();
 }

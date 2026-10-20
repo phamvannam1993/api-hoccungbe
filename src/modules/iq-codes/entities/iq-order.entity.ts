@@ -57,6 +57,40 @@ export class IqOrder {
   @Column({ type: 'datetime', nullable: true })
   reviewedAt: Date | null;
 
+  // ── payOS: link / QR thanh toán của đơn, xác nhận tự động qua webhook ──
+  /** orderCode bên payOS (số, duy nhất mỗi kênh thanh toán). */
+  @Index({ unique: true })
+  @Column({
+    type: 'bigint',
+    nullable: true,
+    transformer: {
+      to: (v: number | null) => v,
+      from: (v: string | null) => (v === null ? null : Number(v)),
+    },
+  })
+  payosOrderCode: number | null;
+
+  /** Số tiền lúc tạo link (đổi giá → tạo link mới). */
+  @Column({ type: 'int', unsigned: true, nullable: true })
+  payosAmount: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  checkoutUrl: string | null;
+
+  /** Chuỗi VietQR payOS trả về (web tự vẽ ra ảnh QR). */
+  @Column({ type: 'text', nullable: true })
+  qrCode: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  payosExpiresAt: Date | null;
+
+  /** Đã nhận tiền: lúc nào, mã giao dịch ngân hàng. */
+  @Column({ type: 'datetime', nullable: true })
+  paidAt: Date | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  payRef: string | null;
+
   /** Ghi từ Node (không dùng DEFAULT CURRENT_TIMESTAMP) để cùng múi giờ với các cột khác. */
   @Column({ type: 'datetime' })
   createdAt: Date;
