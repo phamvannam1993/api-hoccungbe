@@ -77,6 +77,7 @@ const ORDER_COLUMNS: [string, string][] = [
   ['payosExpiresAt', 'ADD COLUMN payosExpiresAt DATETIME NULL'],
   ['paidAt', 'ADD COLUMN paidAt DATETIME NULL'],
   ['payRef', 'ADD COLUMN payRef VARCHAR(64) NULL'],
+  ['payosSite', 'ADD COLUMN payosSite VARCHAR(120) NULL'],
 ];
 
 /** Bảng tạo từ bản cũ chưa có cột gắn tài khoản → thêm vào. */

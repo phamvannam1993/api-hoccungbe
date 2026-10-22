@@ -50,16 +50,18 @@ export class IqOrdersService {
    */
   private async ensurePayLink(order: IqOrder): Promise<IqOrder> {
     if (!this.payos.configured() || order.status !== 'pending') return order;
+    const site = (
+      this.config.get<string>('FRONTEND_URL') || 'https://behayhoc.com'
+    ).replace(/\/+$/, '');
+    // Link tạo ở môi trường khác (vd chạy thử local trỏ cùng DB → trang về là localhost) thì không dùng lại.
     const fresh =
+      order.payosSite === site &&
       order.payosOrderCode &&
       order.payosAmount === order.amount &&
       order.payosExpiresAt &&
       order.payosExpiresAt.getTime() > Date.now() + 5 * 60 * 1000;
     if (fresh) return order;
     if (order.payosOrderCode) await this.payos.cancel(order.payosOrderCode);
-    const site = (
-      this.config.get<string>('FRONTEND_URL') || 'https://behayhoc.com'
-    ).replace(/\/+$/, '');
     const expires = new Date(Date.now() + PAY_LINK_HOURS * 3600 * 1000);
     for (let attempt = 0; attempt < 3; attempt++) {
       const orderCode = Date.now() * 10 + attempt; // duy nhất, < 2^53
@@ -82,6 +84,7 @@ export class IqOrdersService {
       order.payosExpiresAt = new Date(
         Math.floor(expires.getTime() / 1000) * 1000,
       );
+      order.payosSite = site;
       return this.orders.save(order);
     }
     return order;

@@ -84,6 +84,10 @@ export class IqOrder {
   @Column({ type: 'datetime', nullable: true })
   payosExpiresAt: Date | null;
 
+  /** Trang web (FRONTEND_URL) mà link payOS đưa người mua quay về — khác trang hiện tại thì tạo link mới. */
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  payosSite: string | null;
+
   /** Đã nhận tiền: lúc nào, mã giao dịch ngân hàng. */
   @Column({ type: 'datetime', nullable: true })
   paidAt: Date | null;
