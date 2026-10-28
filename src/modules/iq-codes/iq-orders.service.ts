@@ -7,7 +7,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { IqOrder } from './entities/iq-order.entity';
-import { IqCodesService, normalizeCode } from './iq-codes.service';
+import {
+  DOWNLOAD_PREFIX,
+  IqCodesService,
+  normalizeCode,
+} from './iq-codes.service';
 import { CreateOrderDto, ListOrdersQuery } from './dto/iq-orders.dto';
 import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
@@ -63,14 +67,18 @@ export class IqOrdersService {
     if (fresh) return order;
     if (order.payosOrderCode) await this.payos.cancel(order.payosOrderCode);
     const expires = new Date(Date.now() + PAY_LINK_HOURS * 3600 * 1000);
+    // Gói tài liệu (DL…) mua ở /goi-tai-lieu → thanh toán xong về lại đó.
+    const page = DOWNLOAD_PREFIX.test(order.prefix)
+      ? '/goi-tai-lieu'
+      : '/khoa-hoc-iq';
     for (let attempt = 0; attempt < 3; attempt++) {
       const orderCode = Date.now() * 10 + attempt; // duy nhất, < 2^53
       const link = await this.payos.createLink({
         orderCode,
         amount: order.amount,
         description: order.code, // 6 ký tự = mã kích hoạt (payOS cho tối đa 9)
-        returnUrl: `${site}/khoa-hoc-iq?thanh-toan=xong&ma=${order.code}`,
-        cancelUrl: `${site}/khoa-hoc-iq?thanh-toan=huy&ma=${order.code}`,
+        returnUrl: `${site}${page}?thanh-toan=xong&ma=${order.code}`,
+        cancelUrl: `${site}${page}?thanh-toan=huy&ma=${order.code}`,
         buyerEmail: order.userEmail,
         buyerName: order.userName,
         itemName: order.title,
@@ -342,15 +350,25 @@ export class IqOrdersService {
     const name = escapeHtml(order.userName || 'bố mẹ');
     const title = escapeHtml(order.title);
     const until = fmtDay(order.expiresAt);
+    const site = (
+      this.config.get<string>('FRONTEND_URL') || 'https://behayhoc.com'
+    ).replace(/\/+$/, '');
+    const download = DOWNLOAD_PREFIX.test(order.prefix);
+    const where = download
+      ? `vào ${site}/goi-tai-lieu để in / tải tài liệu`
+      : 'vào mục Toán IQ để học ngay';
+    const whereHtml = download
+      ? `vào <a href="${site}/goi-tai-lieu">${site}/goi-tai-lieu</a> để in / tải tài liệu`
+      : 'vào mục <b>Toán IQ</b> để bé học ngay';
     const ok = await this.mail.send({
       to: order.userEmail,
       subject: `Đã mở khóa: ${order.title}`,
-      text: `Xin chào ${order.userName || 'bố mẹ'},\n\nMã ${order.code} (${order.title}, ${vnd(order.amount)}) đã được duyệt. Bé học được đến hết ngày ${until}.\nĐăng nhập Bé Hay Học và vào mục Toán IQ để học ngay.\n\nBé Hay Học`,
+      text: `Xin chào ${order.userName || 'bố mẹ'},\n\nMã ${order.code} (${order.title}, ${vnd(order.amount)}) đã được duyệt. Dùng được đến hết ngày ${until}.\nĐăng nhập Bé Hay Học và ${where}.\n\nBé Hay Học`,
       html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1e293b">
   <h2 style="color:#0284c7;margin:0 0 16px">Đã mở khóa khóa học 🎉</h2>
   <p>Xin chào ${name},</p>
   <p>Mã kích hoạt <b>${order.code}</b> — <b>${title}</b> (${vnd(order.amount)}) đã được duyệt và kích hoạt cho tài khoản của bố mẹ.</p>
-  <p>Bé học được đến hết ngày <b>${until}</b>. Bố mẹ đăng nhập Bé Hay Học và vào mục <b>Toán IQ</b> để bé học ngay nhé.</p>
+  <p>Dùng được đến hết ngày <b>${until}</b>. Bố mẹ đăng nhập Bé Hay Học và ${whereHtml} nhé.</p>
   <p style="margin-top:28px">Bé Hay Học</p>
 </div>`,
     });

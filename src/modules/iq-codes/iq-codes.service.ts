@@ -51,12 +51,15 @@ export const IQ_ACCESS_MONTHS = 1;
 
 /** Gói năm: mã gói combo thêm đuôi Y ('L2ALLY'). */
 const YEARLY_PREFIX = /^([A-Z0-9]+ALL)Y$/;
+/** Gói tài liệu in / tải ('DLPHONICS', 'DLHK1L2'): bán một lần, dùng 12 tháng. */
+export const DOWNLOAD_PREFIX = /^DL[A-Z0-9]+$/;
 
 /**
  * Mã gói → gói gốc để ghi quyền học + số tháng. Gói năm 'L2ALLY' ghi vào 'L2ALL' 12 tháng, nên mua
  * tháng rồi gia hạn bằng gói năm (hoặc ngược lại) vẫn nối tiếp nhau.
  */
 export function planOf(prefix: string) {
+  if (DOWNLOAD_PREFIX.test(prefix)) return { base: prefix, months: 12 };
   const yearly = YEARLY_PREFIX.exec(prefix);
   return yearly
     ? { base: yearly[1], months: 12 }
