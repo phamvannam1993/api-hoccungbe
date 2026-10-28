@@ -7,7 +7,10 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../../common/guards/admin.guard';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
@@ -16,6 +19,8 @@ import { Subscription } from './entities/subscription.entity';
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
+// Chỉ admin: danh sách kèm thông tin tài khoản phụ huynh, và sửa / xóa gói.
+@UseGuards(AuthGuard('jwt'), AdminGuard)
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 

@@ -6,6 +6,11 @@ import { IqActivationCode } from './entities/iq-activation-code.entity';
 import { IqEntitlement } from './entities/iq-entitlement.entity';
 import { IqOrder } from './entities/iq-order.entity';
 import {
+  Subscription,
+  SubscriptionPlanType,
+  SubscriptionStatus,
+} from '../subscriptions/entities/subscription.entity';
+import {
   GenerateCodesDto,
   ListCodesQuery,
   UpdateCodeDto,
@@ -44,6 +49,20 @@ export function normalizeCode(input: string) {
 /** Mỗi mã kích hoạt = quyền học gói đó trong ngần này tháng. */
 export const IQ_ACCESS_MONTHS = 1;
 
+/** Gói năm: mã gói combo thêm đuôi Y ('L2ALLY'). */
+const YEARLY_PREFIX = /^([A-Z0-9]+ALL)Y$/;
+
+/**
+ * Mã gói → gói gốc để ghi quyền học + số tháng. Gói năm 'L2ALLY' ghi vào 'L2ALL' 12 tháng, nên mua
+ * tháng rồi gia hạn bằng gói năm (hoặc ngược lại) vẫn nối tiếp nhau.
+ */
+export function planOf(prefix: string) {
+  const yearly = YEARLY_PREFIX.exec(prefix);
+  return yearly
+    ? { base: yearly[1], months: 12 }
+    : { base: prefix, months: IQ_ACCESS_MONTHS };
+}
+
 function addMonths(d: Date, months: number) {
   const r = new Date(d);
   r.setMonth(r.getMonth() + months);
@@ -73,6 +92,8 @@ export class IqCodesService {
     private readonly grants: Repository<IqEntitlement>,
     @InjectRepository(IqOrder)
     private readonly orders: Repository<IqOrder>,
+    @InjectRepository(Subscription)
+    private readonly subs: Repository<Subscription>,
   ) {}
 
   /**
@@ -175,9 +196,15 @@ export class IqCodesService {
     const saved = await this.repo.save(row);
     // Thu hồi mã đã kích hoạt → tài khoản mất lượt học của mã đó; mở lại → cấp lại lượt mới.
     if (before !== row.status && row.redeemedBy) {
-      if (row.status === 'revoked')
+      if (row.status === 'revoked') {
         await this.grants.delete({ code: row.code });
-      else await this.grant(row.redeemedBy, row.prefix, row.code);
+        await this.subs
+          .update(
+            { transactionCode: row.code },
+            { status: SubscriptionStatus.CANCELLED },
+          )
+          .catch(() => undefined);
+      } else await this.grant(row.redeemedBy, row.prefix, row.code);
     }
     return saved;
   }
@@ -217,7 +244,8 @@ export class IqCodesService {
   }
 
   /** Thêm một lượt học: bắt đầu ngay, hoặc nối sau lượt cùng gói còn hạn của tài khoản. */
-  private async grant(userId: number, prefix: string, code: string) {
+  private async grant(userId: number, planPrefix: string, code: string) {
+    const { base: prefix, months } = planOf(planPrefix);
     // Bỏ phần mili-giây: cột DATETIME làm TRÒN giây, lưu 12.850 thành 13 → lượt chưa "bắt đầu" ngay.
     const now = new Date(Math.floor(Date.now() / 1000) * 1000);
     const last = await this.grants
@@ -232,10 +260,54 @@ export class IqCodesService {
       prefix,
       code,
       startsAt,
-      expiresAt: addMonths(startsAt, IQ_ACCESS_MONTHS),
+      expiresAt: addMonths(startsAt, months),
     });
     await this.grants.upsert(row, ['code']);
+    await this.recordSubscription(row, planPrefix, months);
     return row;
+  }
+
+  /**
+   * Ghi lượt học vào bảng subscriptions (trang admin Gói đăng ký đọc từ đây). Quyền học vẫn tính từ
+   * iq_entitlements; ghi lỗi thì chỉ bỏ qua, không chặn việc mở khóa.
+   */
+  private async recordSubscription(
+    g: IqEntitlement,
+    planPrefix: string,
+    months: number,
+  ) {
+    try {
+      const order = await this.orders.findOne({ where: { code: g.code } });
+      const planType =
+        months >= 12
+          ? SubscriptionPlanType.YEARLY
+          : g.prefix.endsWith('ALL')
+            ? SubscriptionPlanType.MONTHLY
+            : SubscriptionPlanType.SINGLE_COURSE;
+      const data = {
+        userId: g.userId,
+        planName: (order?.title ?? `Toán IQ ${planPrefix}`).slice(0, 100),
+        planType,
+        amount: order?.amount ?? 0,
+        currency: 'VND',
+        status: SubscriptionStatus.ACTIVE,
+        startDate: g.startsAt,
+        endDate: g.expiresAt,
+        paymentMethod: order
+          ? order.paidAt
+            ? 'payos'
+            : 'bank_transfer'
+          : 'activation_code',
+        transactionCode: g.code,
+      };
+      const existing = await this.subs.findOne({
+        where: { transactionCode: g.code },
+      });
+      if (existing) await this.subs.update({ id: existing.id }, data);
+      else await this.subs.insert(data);
+    } catch {
+      // Bảng subscriptions lỗi / thiếu → bỏ qua.
+    }
   }
 
   /** Các gói còn hạn của tài khoản (gộp các lượt nối tiếp nhau → hạn cuối cùng). */
