@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Get,
   Headers,
+  HttpCode,
   Param,
   ParseIntPipe,
   Post,
@@ -64,6 +65,28 @@ export class IqOrdersController {
       },
       dto,
     );
+  }
+
+  /** payOS gọi khi có tiền về (công khai; xác thực bằng chữ ký HMAC). Luôn trả 2xx để payOS không gửi lại vô hạn. */
+  @Post('payos-webhook')
+  @HttpCode(200)
+  async payosWebhook(@Body() body: Record<string, unknown>) {
+    const ok = await this.service.handlePayosWebhook(body as never);
+    return { success: ok };
+  }
+
+  /** Admin: trạng thái cấu hình payOS. */
+  @Get('payos/status')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  payosStatus() {
+    return { configured: this.service.payosConfigured() };
+  }
+
+  /** Admin: đăng ký URL webhook với payOS (payOS gửi thử một giao dịch mẫu). */
+  @Post('payos/confirm-webhook')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  confirmPayosWebhook() {
+    return this.service.confirmPayosWebhook();
   }
 
   /** Đơn của tài khoản đang đăng nhập. */

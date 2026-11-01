@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Lesson } from './entities/lesson.entity';
 import { LessonDetail } from './entities/lesson-detail.entity';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -15,7 +15,22 @@ export class LessonsService {
     private readonly detailRepository: Repository<LessonDetail>,
   ) {}
 
-  create(dto: CreateLessonDto) {
+  // Mọi URL (trang bài, quiz, phiếu bài tập) tra bài theo slug → slug phải duy nhất trên TOÀN site,
+  // không chỉ trong một khóa (Unique(courseId, slug) của bảng không chặn được trùng giữa hai khóa).
+  private async assertSlugFree(slug: string | undefined, exceptId?: number) {
+    if (!slug) return;
+    const taken = await this.lessonsRepository.findOne({
+      where: exceptId ? { slug, id: Not(exceptId) } : { slug },
+      relations: ['course'],
+    });
+    if (taken)
+      throw new ConflictException(
+        `Slug "${slug}" đã dùng cho bài #${taken.id} (${taken.course?.slug ?? 'khóa khác'}) — đặt slug khác`,
+      );
+  }
+
+  async create(dto: CreateLessonDto) {
+    await this.assertSlugFree(dto.slug);
     const entity = this.lessonsRepository.create(dto);
     return this.lessonsRepository.save(entity);
   }
@@ -58,6 +73,7 @@ export class LessonsService {
     const lesson = await this.lessonsRepository.findOne({
       where: { slug },
       relations: ['course'],
+      order: { id: 'ASC' },
     });
     if (!lesson) throw new NotFoundException('Lesson not found');
     return lesson;
@@ -65,6 +81,7 @@ export class LessonsService {
 
   async update(id: number, dto: UpdateLessonDto) {
     const lesson = await this.findOne(id);
+    if (dto.slug && dto.slug !== lesson.slug) await this.assertSlugFree(dto.slug, id);
     Object.assign(lesson, dto);
     return this.lessonsRepository.save(lesson);
   }
