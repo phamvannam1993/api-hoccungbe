@@ -1,12 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import {
   Subscription,
   SubscriptionStatus,
 } from './entities/subscription.entity';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+
+/** Chỉ trả vài cột của tài khoản (không đưa passwordHash… ra API). */
+function slimUser(s: Subscription): Subscription {
+  if (s.user) {
+    const { id, email, fullName } = s.user;
+    s.user = { id, email, fullName } as Subscription['user'];
+  }
+  return s;
+}
 
 @Injectable()
 export class SubscriptionsService {
@@ -40,11 +49,21 @@ export class SubscriptionsService {
     return await this.subscriptionsRepository.save(subscription);
   }
 
+  /** Gói đang active mà đã qua endDate → expired (gọi trước khi đọc danh sách). */
+  private async expireOverdue() {
+    await this.subscriptionsRepository.update(
+      { status: SubscriptionStatus.ACTIVE, endDate: LessThan(new Date()) },
+      { status: SubscriptionStatus.EXPIRED },
+    );
+  }
+
   async findAll(): Promise<Subscription[]> {
-    return await this.subscriptionsRepository.find({
+    await this.expireOverdue();
+    const rows = await this.subscriptionsRepository.find({
       relations: ['user', 'course'],
       order: { createdAt: 'DESC' },
     });
+    return rows.map(slimUser);
   }
 
   async findOne(id: number): Promise<Subscription> {
@@ -57,7 +76,7 @@ export class SubscriptionsService {
       throw new NotFoundException(`Subscription với id ${id} không tồn tại`);
     }
 
-    return subscription;
+    return slimUser(subscription);
   }
 
   async update(
@@ -130,6 +149,7 @@ export class SubscriptionsService {
   }
 
   async findByUser(userId: number): Promise<Subscription[]> {
+    await this.expireOverdue();
     return await this.subscriptionsRepository.find({
       where: { userId },
       relations: ['course'],
@@ -138,6 +158,7 @@ export class SubscriptionsService {
   }
 
   async findActiveByUser(userId: number): Promise<Subscription[]> {
+    await this.expireOverdue();
     return await this.subscriptionsRepository.find({
       where: {
         userId,
