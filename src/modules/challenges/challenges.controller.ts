@@ -11,9 +11,9 @@ export class ChallengesController {
     return this.service.submit(name, score, grade, subject, time, avatar);
   }
 
-  /** Bảng xếp hạng tuần hiện tại theo lớp & môn. */
+  /** Bảng xếp hạng theo lớp & môn; period = week (mặc định) | month | all. Sân chơi Trí tuệ: subject=san-choi (mọi lớp chung). */
   @Get('leaderboard')
-  leaderboard(@Query('grade') grade?: string, @Query('subject') subject?: string, @Query('limit') limit?: string) {
-    return this.service.leaderboard(grade, subject, limit ? Number(limit) : 20);
+  leaderboard(@Query('grade') grade?: string, @Query('subject') subject?: string, @Query('limit') limit?: string, @Query('period') period?: string) {
+    return this.service.leaderboard(grade, subject, limit ? Number(limit) : 20, period);
   }
 }
