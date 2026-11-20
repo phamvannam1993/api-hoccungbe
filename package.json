@@ -20,6 +20,7 @@
     "db:millionaire:answers": "ts-node -r tsconfig-paths/register src/database/create-millionaire-answers.ts",
     "db:challenges:table": "ts-node -r tsconfig-paths/register src/database/create-challenge-scores-table.ts",
     "db:challenges:daily": "ts-node -r tsconfig-paths/register src/database/create-challenge-daily-table.ts",
+    "db:challenges:rooms": "ts-node -r tsconfig-paths/register src/database/create-challenge-rooms-tables.ts",
     "seed:iq-lop1": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop1.ts",
     "seed:iq-lop2": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop2.ts",
     "seed:iq-lop3": "ts-node -r tsconfig-paths/register src/database/seed-iq-lop3.ts",

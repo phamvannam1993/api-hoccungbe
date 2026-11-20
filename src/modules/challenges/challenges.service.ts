@@ -28,14 +28,16 @@ export class ChallengesService {
     @InjectRepository(ChallengeDaily) private readonly daily: Repository<ChallengeDaily>,
   ) {}
 
-  private normGrade(g: unknown): number {
+  /** Lớp 1–5; riêng Sân chơi Trí tuệ dùng 0 = mọi lớp chung một bảng. */
+  private normGrade(g: unknown, subject?: string): number {
+    if (subject === 'san-choi') return 0;
     const n = Math.floor(Number(g) || 1);
     return Math.min(5, Math.max(1, n));
   }
 
   private normSubject(s: unknown): string {
     // Các môn hợp lệ của Đấu Trường/Thi Tài; môn lạ → mặc định 'toan'.
-    const allow = ['toan', 'tieng-viet', 'tieng-anh', 'kham-pha', 'tong-hop'];
+    const allow = ['toan', 'tieng-viet', 'tieng-anh', 'kham-pha', 'tong-hop', 'san-choi'];
     return typeof s === 'string' && allow.includes(s) ? s : 'toan';
   }
 
@@ -49,8 +51,8 @@ export class ChallengesService {
     const score = Math.max(0, Math.min(999, Math.floor(Number(rawScore) || 0)));
     const timeSec = Math.max(0, Math.min(3600, Math.floor(Number(rawTime) || 0))); // giây thi lượt này (chặn 1h)
     const avatar = typeof rawAvatar === 'string' && rawAvatar ? rawAvatar.slice(0, 255) : null;
-    const grade = this.normGrade(rawGrade);
     const subject = this.normSubject(rawSubject);
+    const grade = this.normGrade(rawGrade, subject);
     const week = currentWeek();
     const date = currentDate();
 
@@ -88,24 +90,31 @@ export class ChallengesService {
     return { name, score, grade, subject, rank: higherRaw.length + 1, best, dayPoints, capped };
   }
 
-  async leaderboard(rawGrade: unknown, rawSubject: unknown, limit = 20): Promise<{ week: string; grade: number; subject: string; rows: LeaderRow[] }> {
+  /**
+   * Bảng xếp hạng theo TỔNG điểm cao → thấp; bằng điểm thì TỔNG thời gian ít hơn xếp trên.
+   * period: 'week' (mặc định, tuần ISO hiện tại) | 'month' (từ ngày 1 tháng này, UTC) | 'all' (mọi thời gian).
+   */
+  async leaderboard(rawGrade: unknown, rawSubject: unknown, limit = 20, rawPeriod?: unknown): Promise<{ week: string; period: 'week' | 'month' | 'all'; grade: number; subject: string; rows: LeaderRow[] }> {
     const week = currentWeek();
-    const grade = this.normGrade(rawGrade);
     const subject = this.normSubject(rawSubject);
-    // Xếp hạng theo TỔNG điểm tuần cao → thấp; bằng điểm thì TỔNG thời gian ít hơn xếp trên.
-    const rows = await this.daily
+    const grade = this.normGrade(rawGrade, subject);
+    const period = rawPeriod === 'month' || rawPeriod === 'all' ? rawPeriod : 'week';
+    const qb = this.daily
       .createQueryBuilder('d')
       .select('d.name', 'name')
       .addSelect('SUM(d.points)', 'score')
       .addSelect('SUM(d.timeSec)', 'time')
       .addSelect('MAX(d.avatar)', 'avatar')
-      .where('d.week = :week AND d.grade = :grade AND d.subject = :subject', { week, grade, subject })
+      .where('d.grade = :grade AND d.subject = :subject', { grade, subject });
+    if (period === 'week') qb.andWhere('d.week = :week', { week });
+    if (period === 'month') qb.andWhere('d.date >= :from', { from: currentDate().slice(0, 8) + '01' });
+    const rows = await qb
       .groupBy('d.name')
       .orderBy('score', 'DESC')
       .addOrderBy('time', 'ASC')
       .addOrderBy('MAX(d.updatedAt)', 'ASC')
       .limit(Math.min(Math.max(limit, 1), 100))
       .getRawMany<{ name: string; score: string; avatar: string | null }>();
-    return { week, grade, subject, rows: rows.map((r, i) => ({ name: r.name, score: Number(r.score), rank: i + 1, avatar: r.avatar || null })) };
+    return { week, period, grade, subject, rows: rows.map((r, i) => ({ name: r.name, score: Number(r.score), rank: i + 1, avatar: r.avatar || null })) };
   }
 }
